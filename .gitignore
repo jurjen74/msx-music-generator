@@ -1,0 +1,8 @@
+.env
+node_modules/
+*.mml
+*.ndp
+*.vgm
+# but keep the example's working demo VGMs:
+!msxgl-example/prebuilt/*.vgm
+.DS_Store

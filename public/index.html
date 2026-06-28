@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MSX MML Music Generator</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <h1>MSX MML Music Generator</h1>
+      <p class="sub">Generate PSG chiptune with Claude, preview it in the browser, then download the <code>.mml</code> for the NDP compiler.</p>
+    </header>
+
+    <section class="card">
+      <label class="lbl" for="prompt">Describe the music you want</label>
+      <textarea id="prompt" rows="3" placeholder="e.g. Upbeat action theme for a platform game, energetic and looping. Or: Mysterious cave BGM, slow and eerie."></textarea>
+
+      <div class="grid2">
+        <div>
+          <label class="lbl" for="chip">Target chip</label>
+          <select id="chip">
+            <option value="PSG">PSG (AY-3-8910) — built-in</option>
+            <option value="MSX-Music">MSX-Music (OPLL / FM-PAC)</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl" for="tempo">Tempo</label>
+          <select id="tempo">
+            <option value="slow">Slow (60–80 BPM)</option>
+            <option value="medium" selected>Medium (90–110 BPM)</option>
+            <option value="fast">Fast (130–160 BPM)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid3">
+        <div>
+          <label class="lbl" for="style">Style / mood</label>
+          <select id="style"></select>
+        </div>
+        <div>
+          <label class="lbl" for="key">Key</label>
+          <select id="key"></select>
+        </div>
+        <div>
+          <label class="lbl" for="bars">Length</label>
+          <select id="bars">
+            <option>8 bars</option>
+            <option selected>16 bars</option>
+            <option>32 bars</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="instRow" class="grid3 hidden">
+        <div>
+          <label class="lbl" for="instA">FM voice — melody (A)</label>
+          <select id="instA"></select>
+        </div>
+        <div>
+          <label class="lbl" for="instB">FM voice — harmony (B)</label>
+          <select id="instB"></select>
+        </div>
+        <div>
+          <label class="lbl" for="instC">FM voice — bass (C)</label>
+          <select id="instC"></select>
+        </div>
+      </div>
+
+      <button id="generate" class="primary">Generate MML music</button>
+      <div id="error" class="error hidden"></div>
+    </section>
+
+    <section id="result" class="card hidden">
+      <div class="row between">
+        <span class="title">Generated MML</span>
+        <div class="actions">
+          <button id="play" class="ghost">▶ Preview (MML)</button>
+          <button id="playVgm" class="ghost">▶ Play .vgm</button>
+          <button id="stop" class="ghost" disabled>■ Stop</button>
+          <button id="copy" class="ghost">Copy</button>
+          <button id="download" class="ghost">Download .mml</button>
+          <button id="downloadVgm" class="ghost">Download .vgm</button>
+        </div>
+      </div>
+
+      <div class="chips">
+        <span class="chip a">Channel A — melody</span>
+        <span class="chip b">Channel B — harmony</span>
+        <span class="chip c">Channel C — bass / rhythm</span>
+        <span id="loopState" class="chip muted hidden">looping…</span>
+      </div>
+
+      <pre id="mml"></pre>
+      <p id="note" class="note"></p>
+      <p class="hint"><strong>.vgm</strong> → plays directly on MSXgl's <code>vgm_player</code>, no Windows tool needed. The <em>Target chip</em> selector decides the format: <strong>PSG</strong> (AY-3-8910 square waves) or <strong>MSX-Music</strong> (YM2413 FM — pick the FM voices above). <strong>.mml</strong> → for the NDP editor route. In-browser playback emulates the PSG only; FM is auditioned via Preview (MML) or on real MSXgl. See <code>msxgl-example/</code> to build a test ROM.</p>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "msx-music-generator",
+  "version": "0.1.0",
+  "description": "Generate MSX PSG chiptune as MML with Claude, preview it in the browser, and export .mml for the NDP compiler.",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  }
+}

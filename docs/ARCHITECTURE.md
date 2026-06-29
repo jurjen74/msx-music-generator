@@ -68,18 +68,26 @@ exporter call `parseChannel`, so what you hear in preview is what gets encoded.
   shortest non-empty channel, so the piece loops cleanly even when a long AI
   generation gives the channels uneven lengths. The preview and both VGM
   exporters use this, so what you hear is what you export.
-- `class MMLPlayer` → schedules one `square` oscillator + gain envelope per note
-  via Web Audio; `play(channels, bpm, loop)`, `stop()`, `onEnd`, `onLoop`.
+- Also `parseDrumChannel` / `drumOnsets` (Channel D), `loopPointSeconds` (the
+  `/` marker), and the `VIB_RATE` / `VIB_DEPTH` vibrato constants live here so
+  every renderer shares them.
+- `class MMLPlayer` → Web Audio preview: a `square` oscillator per note with a
+  pluck decay, optional vibrato LFO (`~`), synthesized drums, and an intro/loop
+  point (`/`). `play(channels, bpm, loop)`, `stop()`, `onEnd`, `onLoop`.
 
 ### `public/vgm.js`
 - `buildVGM(channels, bpm, loop)` → `Uint8Array` of a complete PSG VGM file.
   Renders the parsed events onto a 60 Hz frame grid and encodes PSG register
-  writes. Full details in [VGM-FORMAT.md](VGM-FORMAT.md).
+  writes, with per-note **decay**, **vibrato** (period modulation), **drums**
+  (Channel D on the noise generator, ducking the bass), and a **loop point**.
+  Full details in [VGM-FORMAT.md](VGM-FORMAT.md).
 
 ### `public/vgm-opll.js`
-- MSX-Music (YM2413/OPLL FM) support: `buildOPLLfromMML(channels, bpm, loop,
+- MSX-Music (YM2413/OPLL FM): `buildOPLLfromMML(channels, bpm, loop,
   instruments)`, `transcodePsgToOPLL(psgBytes, …)`, `OPLL_INSTRUMENTS` names.
-  Pure (no DOM) — testable in Node. See [VGM-FORMAT.md](VGM-FORMAT.md).
+  Drums on the rhythm section, **vibrato** (F-number bend without re-key),
+  per-note **instrument changes** (`@n`), and a **loop point**. Pure (no DOM) —
+  testable in Node. See [VGM-FORMAT.md](VGM-FORMAT.md).
 
 ### `public/vgmplay.js`
 - `decodeVGM(u8)` → `{ events, totalSamples, ayClock, loopSample }` by walking
@@ -118,15 +126,21 @@ browser; the parsing/encoding/decoding functions do not.)
 
 ## Extending
 
+Already built (look at these as patterns): per-note decay, vibrato (`~`), drums
+(Channel D — OPLL rhythm on FM, noise generator on PSG), mid-track FM instruments
+(`@n`), a loop point (`/`), channel auto-alignment, and lVGM export (server
+`/api/lvgm` via MSXgl's MSXzip + `tools/vgm2lvgm.mjs`).
+
+Remaining ideas:
+
 - **Add an MML command:** extend the `while` loop in `parseChannel`
-  (`public/player.js`). If it affects pitch/length/volume it flows to both
-  preview and VGM automatically. Document it in [MML-REFERENCE.md](MML-REFERENCE.md).
-- **Add the noise channel / SFX:** in `vgm.js`, drive R6 (noise period) and the
-  R7 mixer noise-enable bits, and emit the corresponding registers; mirror it in
-  `vgmplay.js` (add a noise source) for accurate preview.
-- **Hardware envelopes:** set R11–R13 and the volume-register envelope bit (bit
-  4) in `vgm.js`; approximate in the players.
-- **PAL (50 Hz):** parameterize `RATE`/`SAMPLES_PER_FRAME` in `vgm.js` and use
-  the `0x63` wait command; thread a UI toggle through `app.js`.
-- **lVGM export:** either shell out to MSXgl's MSXzip from a new server endpoint,
-  or implement the lVGM encoding directly (see [VGM-FORMAT.md](VGM-FORMAT.md)).
+  (`public/player.js`) and attach the new field to the note event; the exporters
+  and preview read it. Document it in [MML-REFERENCE.md](MML-REFERENCE.md).
+- **PSG hardware envelopes (R13):** set R11–R13 and the volume-register envelope
+  bit (bit 4) in `vgm.js` for buzzy/auto-decaying bass; approximate in the players.
+- **Sound effects (SFX):** a separate one-shot layer (ayFX-style), mixed over the
+  music — distinct from the music exporters.
+- **PAL (50 Hz):** parameterize `RATE`/`SAMPLES_PER_FRAME` and use the `0x63`
+  wait command; thread a UI toggle through `app.js`.
+- **Editable MML + re-preview / per-channel mute-solo:** browser-side polish of
+  the generated MML (the biggest remaining quality lever).

@@ -37,13 +37,18 @@ generate it ourselves** — unlike the proprietary binaries of NDP/PT3/AKG.
 | R0 / R1 | Channel A tone period fine / coarse | per note change |
 | R2 / R3 | Channel B tone period fine / coarse | per note change |
 | R4 / R5 | Channel C tone period fine / coarse | per note change |
-| R7 | Mixer | once: `0x38` = tones A/B/C on, noise off |
-| R8 / R9 / R10 | Channel A / B / C volume (0–15) | per note change |
+| R7 | Mixer | `0x38` (tones on, noise off); flips to `0x1c` while a drum hits on C |
+| R8 / R9 / R10 | Channel A / B / C volume (0–15) | per frame (note + decay envelope) |
+| R6 | Noise period | per drum hit (Channel D) |
 
 Tone period: `period = round(clock / (16 × freq))`, `clock = 1789772 Hz`
 (MSX PSG = 3.579545 MHz ÷ 2). `fine = period & 0xFF`, `coarse = (period >> 8) & 0x0F`.
 
-Noise (R6), envelope (R11–R13) are unused; silence is volume 0, not mixer muting.
+Extras layered on top: a per-note **decay** envelope (volume ramps down to a
+sustain), **vibrato** (`~`, the tone period is modulated per frame), **drums**
+(`D` channel — noise bursts on the generator, overlaid on channel C so the bass
+ducks), and an optional **loop point** (`/`, the VGM loop offset is set past the
+intro). The hardware envelope (R11–R13) is still unused; silence is volume 0.
 
 ### VGM commands emitted
 
@@ -141,10 +146,17 @@ instrument patches; our three voices map to OPLL channels 0/1/2.
 - **Registers** (channel `c`): `0x10+c` F-Num low · `0x20+c` F-Num bit8 + block +
   key-on (bit 4) · `0x30+c` instrument (bits 4-7) + attenuation (bits 0-3, 0 = loud).
 - **Volume:** PSG-style `v1..15` → attenuation `15 − v`.
-- **Articulation:** a new note key-offs then key-ons within the frame so the FM
-  envelope re-attacks.
+- **Articulation:** a new note (onset frame) key-offs then key-ons so the FM
+  envelope re-attacks; repeated same-pitch notes re-key too.
+- **Vibrato** (`~`): the F-number is bent per frame with key-on *held* (no
+  re-trigger).
+- **Instruments** (`@n`): the channel default (from the UI pickers) can be
+  overridden per note, so sections can swap voices.
+- **Drums** (`D`): rendered on the YM2413 **rhythm section** (registers `0x0E`,
+  `0x16-0x18`/`0x26-0x28` pitches, `0x36-0x38` levels) — channels 6–8, so the
+  melody channels 0–2 are untouched.
 - **Header:** YM2413 clock at offset `0x10` (AY clock left 0); commands are
-  `0x51 RR VV`.
+  `0x51 RR VV`. A `/` loop marker sets the loop offset past the intro.
 
 Functions: `buildOPLLfromMML(channels, bpm, loop, instruments)` (from MML),
 `transcodePsgToOPLL(psgBytes, …)` (re-voice an existing PSG VGM as FM). Default
@@ -161,6 +173,6 @@ exploit FM synthesis.
 ## Current limitations
 
 - 60 Hz (NTSC) only; no 50 Hz (PAL) variant yet.
-- Tone + volume + rests only — no noise channel, SFX, or hardware envelopes.
+- No sound effects (SFX) layer, and the PSG hardware envelope (R13) is unused.
 - Volume is written linearly (MML `v1–15` → PSG `0–15`); the PSG's volume curve
   is logarithmic, so loud/soft balance is approximate.

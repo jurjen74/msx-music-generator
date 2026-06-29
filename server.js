@@ -40,11 +40,20 @@ function buildSystemPrompt(p) {
     p.chip === "MSX-Music"
       ? "OPLL / FM-PAC, 9 FM channels"
       : "AY-3-8910, 3 square-wave channels A/B/C";
-  return `You are an expert MSX chiptune composer writing MML (Music Macro Language) for the ${p.chip} chip (${chipDesc}).
+  return `You are an expert MSX chiptune composer in the tradition of classic Konami and Falcom MSX soundtracks, writing MML (Music Macro Language) for the ${p.chip} chip (${chipDesc}).
 
-Write ${p.bars} of looping game music in ${p.key} at ${p.tempo} tempo. Style: "${p.prompt || p.style}".
+Compose ${p.bars} of looping game music in ${p.key} at a ${p.tempo} tempo. Style/mood: "${p.prompt || p.style}".
 
-Output ONLY this exact format — no markdown, no preamble, no extra text:
+Follow this process IN YOUR HEAD — do NOT write any of it down (no chord charts, no bar counting, no commentary):
+1. CHORDS first. Choose a strong progression in ${p.key} that fits the mood (e.g. i–VI–III–VII or i–iv–V for minor drama; I–V–vi–IV or I–IV–V for bright/heroic). Develop it over the piece; it's the backbone of all three channels.
+2. BASS (Channel C). Drive the harmony: play roots and fifths of each chord with a rhythmic, pulsing or walking pattern (mix 8th/16th notes, the occasional run or octave jump). Avoid plain whole notes.
+3. HARMONY (Channel B). Reinforce the chords with chord tones. Prefer ARPEGGIOS — fast 16th-note chord tones like "o4 c16 e16 g16 e16" — for that classic shimmering chiptune texture, or held thirds/sixths for softer moods.
+4. MELODY (Channel A). Write a MEMORABLE, singable tune built on a short recurring MOTIF. Give it shape: clear rise-and-fall contour, phrasing (use rests to breathe), call-and-response, and rhythmic variety (mix 4/8/16 lengths, dotted notes, ties, syncopation). Avoid aimless up-and-down scale runs.
+5. STRUCTURE. Develop across sections (e.g. an A theme, a contrasting B, then back to A) while keeping a recurring hook so it feels cohesive and loops seamlessly.
+
+Aim for tension and release and a hook a player would remember. Make the parts complement each other (consonant on strong beats, no muddy clashes).
+
+Your ENTIRE response must be ONLY these five lines, starting immediately with "CHANNEL_A:". No preamble, no planning, no explanations, no markdown — nothing before or after:
 
 CHANNEL_A: <mml>
 CHANNEL_B: <mml>
@@ -54,18 +63,15 @@ NOTE: <one sentence describing the piece>
 
 MML syntax rules:
 - Notes: c d e f g a b (lowercase), # for sharp, - for flat
-- Octave: o1-o8 prefix (e.g. o5c). Use o3-o6 for melody, o2-o4 for bass.
+- Octave: o1-o8 prefix (e.g. o5c). Use o4-o6 for melody, o3-o5 for harmony, o2-o3 for bass.
 - Length after note: 1=whole 2=half 4=quarter 8=eighth 16=sixteenth (e.g. c4 c8). Dotted with a trailing dot (c4.)
-- Rest: r (e.g. r4)
+- Rest: r (e.g. r4) — use rests for phrasing, don't fill every beat
 - Octave shift: > (up) < (down)
-- Tie: & (c4&c8)
-- Volume: v1-v15
-- Loop: [pattern]N
-- Channel A = melody (higher register, more movement)
-- Channel B = harmony / mid bass (chord tones)
-- Channel C = bass line or rhythmic pattern
-- CRITICAL: all three channels MUST have exactly the same total duration (sum of note+rest lengths) so they stay in sync and loop seamlessly. Double-check this before answering.
-- For longer pieces, develop the music across distinct sections (e.g. A/B/A) with melodic variation, not just one short pattern repeated — but keep recurring figures so it still feels cohesive and loops cleanly.`;
+- Tie: & (c4&c8) for held/longer notes
+- Volume: v1-v15 — use it for dynamics and accents (e.g. louder on downbeats, softer harmony than melody)
+- Loop: [pattern]N to repeat a figure compactly
+- Channel A = melody, Channel B = harmony/arpeggios, Channel C = bass
+- CRITICAL: all three channels MUST have exactly the same total duration (sum of note+rest lengths) so they stay in sync and loop seamlessly. Count carefully and double-check before answering.`;
 }
 
 function parseModelText(text) {
@@ -81,7 +87,7 @@ async function generate(params) {
   // Scale the output budget with the requested length so long, through-composed
   // pieces aren't truncated. ~120 tokens per bar of 3-channel MML, clamped.
   const barsNum = parseInt(params.bars, 10) || 16;
-  const maxTokens = Math.min(8000, Math.max(2000, barsNum * 120));
+  const maxTokens = Math.min(8000, Math.max(2500, barsNum * 150));
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {

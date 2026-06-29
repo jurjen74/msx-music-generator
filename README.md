@@ -82,6 +82,18 @@ Set in `.env` or the environment:
 | `ANTHROPIC_API_KEY` | _(required)_ | Your Anthropic API key |
 | `PORT` | `5173` | HTTP port |
 | `MSX_MODEL` | `claude-sonnet-4-6` | Claude model used to compose |
+| `MSXZIP` | _(unset)_ | Path to MSXgl's MSXzip binary. When set, enables the **Download .lvgm** button (see below). |
+
+### Optional: in-app lVGM export
+
+[lVGM](msxgl-example/#smaller-roms-with-lvgm) is a compact, MSX-optimized VGM (~75–85% smaller). Encoding it requires MSXgl's **MSXzip** tool, so it's off by default. To enable a **Download .lvgm** button in the UI, point `MSXZIP` at the binary from your MSXgl install and restart:
+
+```bash
+# in .env (or the environment), then `npm start`
+MSXZIP=/path/to/MSXgl/tools/MSXtk/bin/MSXzip   # MSXzip.exe on Windows
+```
+
+The server then exposes `POST /api/lvgm` (the browser sends the VGM bytes, the server runs MSXzip and returns the lVGM), and the button appears automatically. If `MSXZIP` is unset or the file is missing, the button stays hidden and everything else works unchanged. Without it, you can always convert offline with [`tools/vgm2lvgm.mjs`](#tools-cli).
 
 ## Usage
 

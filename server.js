@@ -7,7 +7,9 @@
 
 const http = require("http");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
+const { spawnSync } = require("child_process");
 
 // Load .env if present (Node 20.12+). Harmless if the file is missing.
 try {
@@ -19,6 +21,10 @@ try {
 const PORT = process.env.PORT || 5173;
 const API_KEY = process.env.ANTHROPIC_API_KEY;
 const MODEL = process.env.MSX_MODEL || "claude-sonnet-4-6";
+// Optional: path to MSXgl's MSXzip binary. When set, enables /api/lvgm
+// (VGM -> compact lVGM conversion) and the "Download .lvgm" button in the UI.
+const MSXZIP = process.env.MSXZIP;
+const LVGM_ENABLED = Boolean(MSXZIP && fs.existsSync(MSXZIP));
 
 const PUBLIC_DIR = path.join(__dirname, "public");
 const MIME = {
@@ -139,7 +145,61 @@ function serveStatic(req, res) {
   });
 }
 
+// Convert VGM bytes to lVGM by shelling out to MSXgl's MSXzip. Returns a Buffer.
+function vgmToLVGM(vgmBuf, freq) {
+  const stamp = `msxmml-${process.pid}-${Date.now()}`;
+  const inPath = path.join(os.tmpdir(), `${stamp}.vgm`);
+  const outPath = path.join(os.tmpdir(), `${stamp}.lvgm`);
+  try {
+    fs.writeFileSync(inPath, vgmBuf);
+    const r = spawnSync(
+      MSXZIP,
+      [inPath, "-lVGM", "--freq", freq === "50" ? "50" : "60", "-bin", "-o", outPath],
+      { encoding: "buffer" }
+    );
+    if (r.status !== 0 || !fs.existsSync(outPath)) {
+      const msg = (r.stderr && r.stderr.toString()) || `MSXzip exited with code ${r.status}`;
+      throw new Error(msg.trim());
+    }
+    return fs.readFileSync(outPath);
+  } finally {
+    for (const p of [inPath, outPath]) {
+      try { fs.unlinkSync(p); } catch { /* ignore */ }
+    }
+  }
+}
+
 const server = http.createServer((req, res) => {
+  // Lets the UI know which optional features are available.
+  if (req.method === "GET" && req.url === "/api/config") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ lvgm: LVGM_ENABLED }));
+    return;
+  }
+
+  // Optional: convert posted VGM bytes to compact lVGM (needs MSXZIP configured).
+  if (req.method === "POST" && req.url.split("?")[0] === "/api/lvgm") {
+    if (!LVGM_ENABLED) {
+      res.writeHead(501, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "lVGM is not enabled on the server. Set MSXZIP to your MSXgl MSXzip binary. See .env.example." }));
+      return;
+    }
+    const freq = new URL(req.url, "http://x").searchParams.get("freq") || "60";
+    const chunks = [];
+    req.on("data", (c) => chunks.push(c));
+    req.on("end", () => {
+      try {
+        const lvgm = vgmToLVGM(Buffer.concat(chunks), freq);
+        res.writeHead(200, { "Content-Type": "application/octet-stream" });
+        res.end(lvgm);
+      } catch (e) {
+        res.writeHead(502, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "lVGM conversion failed: " + e.message }));
+      }
+    });
+    return;
+  }
+
   if (req.method === "POST" && req.url === "/api/generate") {
     if (!API_KEY) {
       res.writeHead(500, { "Content-Type": "application/json" });
@@ -169,4 +229,7 @@ server.listen(PORT, () => {
   if (!API_KEY) {
     console.log("WARNING: ANTHROPIC_API_KEY is not set — generation will fail until you set it.");
   }
+  console.log(LVGM_ENABLED
+    ? `lVGM export enabled (MSXzip: ${MSXZIP})`
+    : "lVGM export disabled (set MSXZIP to enable the Download .lvgm button).");
 });

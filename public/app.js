@@ -170,6 +170,32 @@ function downloadVgm() {
   }
 }
 
+// Optional: compact lVGM, converted server-side via MSXgl's MSXzip.
+async function downloadLvgm() {
+  if (!current) return;
+  try {
+    const res = await fetch("/api/lvgm?freq=60", {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream" },
+      body: vgmBytes(),
+    });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error(j.error || `Error ${res.status}`);
+    }
+    const buf = new Uint8Array(await res.arrayBuffer());
+    saveBlob(new Blob([buf], { type: "application/octet-stream" }), `${baseName()}.lvgm`);
+  } catch (e) {
+    setError("lVGM export failed: " + e.message);
+  }
+}
+
+// Reveal the lVGM button only if the server has MSXzip configured.
+fetch("/api/config")
+  .then((r) => r.json())
+  .then((c) => { if (c.lvgm) $("downloadLvgm").classList.remove("hidden"); })
+  .catch(() => {});
+
 $("generate").addEventListener("click", generate);
 $("play").addEventListener("click", play);
 $("playVgm").addEventListener("click", playVgm);
@@ -177,3 +203,4 @@ $("stop").addEventListener("click", stopAll);
 $("copy").addEventListener("click", copy);
 $("download").addEventListener("click", download);
 $("downloadVgm").addEventListener("click", downloadVgm);
+$("downloadLvgm").addEventListener("click", downloadLvgm);

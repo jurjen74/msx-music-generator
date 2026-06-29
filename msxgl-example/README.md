@@ -19,6 +19,33 @@ This dir:  .vgm ─→ music_vgm.h  ─→ build s_mymusic       ─→ ROM ─�
 > ROMs were verified in openMSX on macOS. The Windows/Linux build and emulator
 > notes are provided for completeness but have **not** been verified.
 
+## From the web app to a ROM (quickstart)
+
+The common path: generate a track in the web app, click **Download .lvgm** (the
+button appears when the server has `MSXZIP` set — see the parent README), then
+turn it into a ROM. Paths below assume MSXgl at `/path/to/MSXgl` and that you run
+the Node commands from the parent repo (`msx-music-generator/`).
+
+```bash
+# 1. Embed your downloaded lVGM as a C array. It's already compressed, so this is
+#    just bin2c — no MSXzip needed. (For a .vgm download, see the sections below.)
+node tools/bin2c.mjs ~/Downloads/your_track.lvgm \
+     /path/to/MSXgl/projects/samples/music_lvgm.h  g_Music
+
+# 2. Copy the lVGM project files into MSXgl and build (Windows: use copy / build.bat)
+cp msxgl-example/s_mymusic_lvgm.c msxgl-example/s_mymusic_lvgm.js  /path/to/MSXgl/projects/samples/
+cd /path/to/MSXgl/projects/samples/
+bash build.sh s_mymusic_lvgm           # → out/s_mymusic_lvgm.rom
+
+# 3. Run. Add -ext fmpac for an MSX-Music (FM) track; omit it for a PSG track.
+openmsx -machine C-BIOS_MSX2+ -ext fmpac -cart out/s_mymusic_lvgm.rom
+```
+
+Downloaded a **`.vgm`** instead of `.lvgm`? Use the `s_mymusic` project
+([Build it yourself](#build-it-yourself--the-included-demo-track)) or convert it
+to lVGM first ([Smaller ROMs with lVGM](#smaller-roms-with-lvgm)). Just want to
+hear something now? Run a [prebuilt ROM](#try-it-immediately-prebuilt-roms--no-toolchain-needed).
+
 ## Prerequisites
 
 - **MSXgl** checked out and working (tested with MSXgl 1.4.1). It bundles SDCC and

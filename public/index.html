@@ -50,6 +50,8 @@
             <option>8 bars</option>
             <option selected>16 bars</option>
             <option>32 bars</option>
+            <option>48 bars</option>
+            <option>64 bars</option>
           </select>
         </div>
       </div>
@@ -96,6 +98,7 @@
 
       <pre id="mml"></pre>
       <p id="note" class="note"></p>
+      <p id="syncInfo" class="note"></p>
       <p class="hint"><strong>.vgm</strong> → plays directly on MSXgl's <code>vgm_player</code>, no Windows tool needed. The <em>Target chip</em> selector decides the format: <strong>PSG</strong> (AY-3-8910 square waves) or <strong>MSX-Music</strong> (YM2413 FM — pick the FM voices above). <strong>.mml</strong> → for the NDP editor route. In-browser playback emulates the PSG only; FM is auditioned via Preview (MML) or on real MSXgl. See <code>msxgl-example/</code> to build a test ROM. <strong>Download .lvgm</strong> (compact MSX-optimized VGM, ~75–85% smaller) appears only when the server is started with <code>MSXZIP</code> configured — see the README.</p>
     </section>
   </main>

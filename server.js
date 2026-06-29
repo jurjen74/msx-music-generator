@@ -64,7 +64,8 @@ MML syntax rules:
 - Channel A = melody (higher register, more movement)
 - Channel B = harmony / mid bass (chord tones)
 - Channel C = bass line or rhythmic pattern
-- Make all three channels the same total length so they stay in sync, and end so the phrase loops seamlessly.`;
+- CRITICAL: all three channels MUST have exactly the same total duration (sum of note+rest lengths) so they stay in sync and loop seamlessly. Double-check this before answering.
+- For longer pieces, develop the music across distinct sections (e.g. A/B/A) with melodic variation, not just one short pattern repeated — but keep recurring figures so it still feels cohesive and loops cleanly.`;
 }
 
 function parseModelText(text) {
@@ -77,6 +78,10 @@ function parseModelText(text) {
 }
 
 async function generate(params) {
+  // Scale the output budget with the requested length so long, through-composed
+  // pieces aren't truncated. ~120 tokens per bar of 3-channel MML, clamped.
+  const barsNum = parseInt(params.bars, 10) || 16;
+  const maxTokens = Math.min(8000, Math.max(2000, barsNum * 120));
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -86,7 +91,7 @@ async function generate(params) {
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 1500,
+      max_tokens: maxTokens,
       system: buildSystemPrompt(params),
       messages: [{ role: "user", content: "Generate the MML now." }],
     }),

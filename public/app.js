@@ -1,4 +1,4 @@
-import { MMLPlayer } from "./player.js";
+import { MMLPlayer, parseChannel } from "./player.js";
 import { buildVGM } from "./vgm.js";
 import { VGMPlayer } from "./vgmplay.js";
 import { buildOPLLfromMML, OPLL_INSTRUMENTS, DEFAULT_INSTRUMENTS } from "./vgm-opll.js";
@@ -92,12 +92,31 @@ async function generate() {
     current = data;
     $("mml").textContent = data.mml;
     $("note").textContent = data.note || "";
+    showSyncInfo();
     $("result").classList.remove("hidden");
   } catch (e) {
     setError(e.message);
   } finally {
     btn.disabled = false;
     btn.textContent = "Generate MML music";
+  }
+}
+
+// Show each channel's playback length and warn if they're unequal (which makes
+// long pieces loop with silent gaps). Helps spot desynced long generations.
+function showSyncInfo() {
+  if (!current) return;
+  const dur = (k) => parseChannel(current.channels[k], current.tempo).reduce((s, n) => s + n.dur, 0);
+  const a = dur("A"), b = dur("B"), c = dur("C");
+  const max = Math.max(a, b, c), min = Math.min(a, b, c);
+  const fmt = `A ${a.toFixed(1)}s · B ${b.toFixed(1)}s · C ${c.toFixed(1)}s · loop ${max.toFixed(1)}s`;
+  const el = $("syncInfo");
+  if (max - min < 0.1) {
+    el.textContent = `Channels in sync ✓  (${fmt})`;
+    el.style.color = "";
+  } else {
+    el.textContent = `⚠ Channels differ by ${(max - min).toFixed(1)}s — the loop uses the longest channel, so shorter ones fall silent before it repeats. Regenerate or pick fewer bars for a tighter loop.  (${fmt})`;
+    el.style.color = "var(--err)";
   }
 }
 

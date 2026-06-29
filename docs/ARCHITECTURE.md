@@ -64,6 +64,10 @@ exporter call `parseChannel`, so what you hear in preview is what gets encoded.
 ### `public/player.js`
 - `parseChannel(mml, bpm)` → `[{ midi|null, dur, vol }]` (see
   [MML-REFERENCE.md](MML-REFERENCE.md)). `expandLoops` resolves `[..]N`.
+- `parseAlignedChannels(channels, bpm)` → parses all three and trims them to the
+  shortest non-empty channel, so the piece loops cleanly even when a long AI
+  generation gives the channels uneven lengths. The preview and both VGM
+  exporters use this, so what you hear is what you export.
 - `class MMLPlayer` → schedules one `square` oscillator + gain envelope per note
   via Web Audio; `play(channels, bpm, loop)`, `stop()`, `onEnd`, `onLoop`.
 

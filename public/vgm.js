@@ -10,7 +10,7 @@
 //
 // VGM spec: https://vgmrips.net/wiki/VGM_Specification
 
-import { parseChannel } from "./player.js";
+import { parseAlignedChannels } from "./player.js";
 
 const PSG_CLOCK = 1789772; // MSX PSG: 3.579545 MHz / 2
 const RATE = 60; // NTSC frames per second
@@ -47,7 +47,8 @@ function channelFrames(events, frameCount) {
 // channels: { A, B, C } raw MML; bpm number; loop boolean.
 // Returns a Uint8Array containing a complete .vgm file.
 export function buildVGM(channels, bpm, loop = true) {
-  const evs = ["A", "B", "C"].map((k) => parseChannel(channels[k], bpm));
+  const aligned = parseAlignedChannels(channels, bpm);
+  const evs = [aligned.A, aligned.B, aligned.C];
   const cycle = Math.max(...evs.map((e) => e.reduce((s, n) => s + n.dur, 0)), 0);
   const frameCount = Math.max(1, Math.round(cycle * RATE));
   const chFrames = evs.map((e) => channelFrames(e, frameCount));

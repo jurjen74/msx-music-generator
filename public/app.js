@@ -108,15 +108,17 @@ function showSyncInfo() {
   if (!current) return;
   const dur = (k) => parseChannel(current.channels[k], current.tempo).reduce((s, n) => s + n.dur, 0);
   const a = dur("A"), b = dur("B"), c = dur("C");
-  const max = Math.max(a, b, c), min = Math.min(a, b, c);
-  const fmt = `A ${a.toFixed(1)}s · B ${b.toFixed(1)}s · C ${c.toFixed(1)}s · loop ${max.toFixed(1)}s`;
+  const lengths = [a, b, c].filter((t) => t > 0.01);
+  const max = Math.max(...lengths), min = Math.min(...lengths);
+  const fmt = `A ${a.toFixed(1)}s · B ${b.toFixed(1)}s · C ${c.toFixed(1)}s`;
   const el = $("syncInfo");
   if (max - min < 0.1) {
-    el.textContent = `Channels in sync ✓  (${fmt})`;
+    el.textContent = `Channels in sync ✓  (${fmt} · loop ${max.toFixed(1)}s)`;
     el.style.color = "";
   } else {
-    el.textContent = `⚠ Channels differ by ${(max - min).toFixed(1)}s — the loop uses the longest channel, so shorter ones fall silent before it repeats. Regenerate or pick fewer bars for a tighter loop.  (${fmt})`;
-    el.style.color = "var(--err)";
+    // Preview and exports auto-align to the shortest channel for a clean loop.
+    el.textContent = `Channels were uneven (${fmt}); auto-aligned the loop to ${min.toFixed(1)}s so it repeats cleanly (longer channels trimmed). Regenerate or pick fewer bars for more even material.`;
+    el.style.color = "";
   }
 }
 

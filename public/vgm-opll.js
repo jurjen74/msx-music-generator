@@ -17,7 +17,7 @@
 //   0x30+c : bits4-7 = instrument (1-15 built-in), bits0-3 = attenuation (0=loud)
 
 import { decodeVGM } from "./vgmplay.js";
-import { parseChannel } from "./player.js";
+import { parseAlignedChannels } from "./player.js";
 
 // Built-in OPLL instrument names, indexed 1..15 (0 = user/custom patch).
 export const OPLL_INSTRUMENTS = [
@@ -141,7 +141,8 @@ export function transcodePsgToOPLL(u8, loop = true, instruments = DEFAULT_INSTRU
 
 // Render MML channels into per-channel, per-frame { freq, vol } at 60 Hz.
 export function mmlToFrames(channels, bpm) {
-  const evs = ["A", "B", "C"].map((k) => parseChannel(channels[k], bpm));
+  const aligned = parseAlignedChannels(channels, bpm);
+  const evs = [aligned.A, aligned.B, aligned.C];
   const cycle = Math.max(...evs.map((e) => e.reduce((s, n) => s + n.dur, 0)), 0);
   const frameCount = Math.max(1, Math.round(cycle * RATE));
   return evs.map((events) => {

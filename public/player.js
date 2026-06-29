@@ -88,6 +88,38 @@ function parseChannel(mml, bpm) {
   return events;
 }
 
+// Parse all three channels and trim them to a common length so the piece loops
+// cleanly. Long AI generations often give the channels slightly different total
+// durations; without this the loop runs to the longest channel and the shorter
+// ones fall silent before it repeats. We trim to the shortest non-empty channel.
+// Returns { A, B, C } event arrays. (Empty channels are left empty.)
+export function parseAlignedChannels(channels, bpm) {
+  const evs = {
+    A: parseChannel(channels.A, bpm),
+    B: parseChannel(channels.B, bpm),
+    C: parseChannel(channels.C, bpm),
+  };
+  const total = (ev) => ev.reduce((s, n) => s + n.dur, 0);
+  const totals = { A: total(evs.A), B: total(evs.B), C: total(evs.C) };
+  const positive = Object.values(totals).filter((t) => t > 1e-6);
+  if (positive.length === 0) return evs;
+  const target = Math.min(...positive);
+
+  for (const k of ["A", "B", "C"]) {
+    if (totals[k] <= target + 1e-6) continue; // empty or already shortest
+    const trimmed = [];
+    let acc = 0;
+    for (const n of evs[k]) {
+      const remaining = target - acc;
+      if (remaining <= 1e-6) break;
+      if (n.dur <= remaining + 1e-6) { trimmed.push(n); acc += n.dur; }
+      else { trimmed.push({ ...n, dur: remaining }); break; }
+    }
+    evs[k] = trimmed;
+  }
+  return evs;
+}
+
 export class MMLPlayer {
   constructor() {
     this.ctx = null;
@@ -127,7 +159,8 @@ export class MMLPlayer {
     this.master.connect(this.ctx.destination);
     this.playing = true;
 
-    const parsed = ["A", "B", "C"].map((k) => parseChannel(channels[k], bpm));
+    const aligned = parseAlignedChannels(channels, bpm);
+    const parsed = [aligned.A, aligned.B, aligned.C];
     let cycle = 0;
     for (const ev of parsed) {
       let t = 0;

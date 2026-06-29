@@ -31,7 +31,7 @@ Claude ─→ MML ─→ [app] ─┤               ├─→ MSXgl vgm_player �
 | [docs/MML-REFERENCE.md](docs/MML-REFERENCE.md) | The MML syntax the parser understands |
 | [docs/VGM-FORMAT.md](docs/VGM-FORMAT.md) | How the VGM exporters (PSG + MSX-Music) work + MSXgl integration |
 | [docs/PIPELINE.md](docs/PIPELINE.md) | Why VGM was chosen over NDP/others (the research behind it) |
-| `msxgl_music_context.md` | Original project context and the NDP pipeline notes |
+| [msxgl_music_context.md](msxgl_music_context.md) | Original project brainstorm and the early NDP pipeline notes (historical) |
 
 ## Requirements
 

@@ -119,9 +119,9 @@ node tools/vgm-psg2opll.mjs your_psg.vgm your_fm.vgm
 node tools/bin2c.mjs your_fm.vgm /path/to/MSXgl/projects/samples/music_vgm.h g_Music
 ```
 
-## Smaller ROMs with lVGM (recommended for real projects)
+## Smaller ROMs with lVGM
 
-**lVGM** ("light VGM") is an MSX-optimized, compressed form of VGM — typically
+Recommended for real projects. **lVGM** ("light VGM") is an MSX-optimized, compressed form of VGM — typically
 **75–85% smaller** (our demo: PSG 629 → 92 bytes, FM 812 → 187). It's played by
 MSXgl's `vgm/lvgm_player`. Use the `s_mymusic_lvgm.*` variant in this folder.
 

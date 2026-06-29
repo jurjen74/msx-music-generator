@@ -1,5 +1,12 @@
 # MSX2 Game — AI Music Integration Context
 
+> **Historical note.** This is the original brainstorm that kicked off the project,
+> when the plan centred on the NDP toolchain. The project has since moved to a
+> Mac-native **VGM / lVGM** pipeline (PSG *and* MSX-Music). For current, accurate
+> docs see the [README](README.md) and [docs/](docs/) — especially
+> [docs/PIPELINE.md](docs/PIPELINE.md), which explains why VGM replaced NDP.
+> This file is kept for context only.
+
 ## Project
 - Building an MSX2 game using **MSXgl** (C game library): https://github.com/aoineko-fr/MSXgl
 - Target chip: **PSG (AY-3-8910)** built into MSX2, 3 square-wave channels (A/B/C)

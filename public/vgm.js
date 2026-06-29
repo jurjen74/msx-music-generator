@@ -10,7 +10,7 @@
 //
 // VGM spec: https://vgmrips.net/wiki/VGM_Specification
 
-import { parseAlignedChannels } from "./player.js";
+import { parseAlignedChannels, parseDrumChannel } from "./player.js";
 
 const PSG_CLOCK = 1789772; // MSX PSG: 3.579545 MHz / 2
 const RATE = 60; // NTSC frames per second
@@ -27,24 +27,61 @@ function midiToPeriod(midi) {
   return Math.max(1, Math.min(4095, period));
 }
 
-// Render one channel's note events onto a per-frame array of { period, vol }.
+// Per-note volume decay so PSG notes "pluck" instead of droning: drop from the
+// note volume to a sustain (~half) over ~8 frames, then hold.
+function decayVol(vol, age) {
+  if (vol <= 0) return 0;
+  const sustain = Math.max(1, Math.round(vol * 0.5));
+  const D = 8;
+  const v = vol - (vol - sustain) * Math.min(1, age / D);
+  return Math.max(0, Math.min(15, Math.round(v)));
+}
+
+// Render one channel's events to per-frame { period, vol, age } (age = frames
+// since the note started, for the decay envelope).
 function channelFrames(events, frameCount) {
-  const frames = Array.from({ length: frameCount }, () => ({ period: 0, vol: 0 }));
+  const frames = Array.from({ length: frameCount }, () => ({ period: 0, vol: 0, age: 0 }));
   let t = 0;
   for (const ev of events) {
     const startF = Math.round(t * RATE);
     const endF = Math.round((t + ev.dur) * RATE);
-    let state = { period: 0, vol: 0 };
     if (ev.midi != null) {
-      state = { period: midiToPeriod(ev.midi), vol: Math.max(0, Math.min(15, ev.vol)) };
+      const period = midiToPeriod(ev.midi);
+      const vol = Math.max(0, Math.min(15, ev.vol));
+      for (let f = startF; f < endF && f < frameCount; f++) frames[f] = { period, vol, age: f - startF };
     }
-    for (let f = startF; f < endF && f < frameCount; f++) frames[f] = state;
     t += ev.dur;
   }
   return frames;
 }
 
-// channels: { A, B, C } raw MML; bpm number; loop boolean.
+// PSG drum voices on the noise generator: { noise period (0-31), length, volume }.
+function drumParams(bits) {
+  if (bits & 0x10) return { np: 0x14, len: 8, vol: 15 }; // kick
+  if (bits & 0x08) return { np: 0x08, len: 6, vol: 13 }; // snare
+  if (bits & 0x04) return { np: 0x10, len: 7, vol: 13 }; // tom
+  if (bits & 0x02) return { np: 0x03, len: 12, vol: 10 }; // cymbal
+  return { np: 0x02, len: 3, vol: 9 }; // hi-hat
+}
+
+// Build a per-frame drum overlay (noise hits with a decay tail) for channel C.
+function drumOverlay(drumMML, bpm, frameCount) {
+  const overlay = new Array(frameCount).fill(null);
+  let t = 0;
+  for (const ev of parseDrumChannel(drumMML, bpm)) {
+    const f0 = Math.round(t * RATE);
+    if (ev.bits) {
+      const d = drumParams(ev.bits);
+      for (let i = 0; i < d.len && f0 + i < frameCount; i++) {
+        overlay[f0 + i] = { np: d.np, vol: Math.max(0, Math.round(d.vol * (1 - i / d.len))) };
+      }
+    }
+    t += ev.dur;
+  }
+  return overlay;
+}
+
+// channels: { A, B, C, D? } raw MML; bpm number; loop boolean.
 // Returns a Uint8Array containing a complete .vgm file.
 export function buildVGM(channels, bpm, loop = true) {
   const aligned = parseAlignedChannels(channels, bpm);
@@ -52,6 +89,8 @@ export function buildVGM(channels, bpm, loop = true) {
   const cycle = Math.max(...evs.map((e) => e.reduce((s, n) => s + n.dur, 0)), 0);
   const frameCount = Math.max(1, Math.round(cycle * RATE));
   const chFrames = evs.map((e) => channelFrames(e, frameCount));
+  // Drums (optional) overlay channel C via the noise generator.
+  const drums = channels.D ? drumOverlay(channels.D, bpm, frameCount) : null;
 
   // Build the command stream, only emitting register writes that changed.
   const cmds = [];
@@ -64,15 +103,31 @@ export function buildVGM(channels, bpm, loop = true) {
     }
   };
 
-  write(7, 0x38); // mixer: tone on A/B/C (bits 0-2 = 0), noise off (bits 3-5 = 1)
+  const MIX_DEFAULT = 0x38; // tone A/B/C on, noise off
+  const MIX_C_DRUM = 0x1c; // A/B tone on, C tone off + C noise on
+  write(7, MIX_DEFAULT);
 
   let totalSamples = 0;
   for (let f = 0; f < frameCount; f++) {
-    for (let c = 0; c < 3; c++) {
-      const { period, vol } = chFrames[c][f];
+    // Channels A and B: tonal with decay.
+    for (let c = 0; c < 2; c++) {
+      const { period, vol, age } = chFrames[c][f];
       write(REG_FINE[c], period & 0xff);
       write(REG_COARSE[c], (period >> 8) & 0x0f);
-      write(REG_VOL[c], vol & 0x0f);
+      write(REG_VOL[c], decayVol(vol, age));
+    }
+    // Channel C: a drum hit (noise) ducks the bass for its duration.
+    const hit = drums && drums[f];
+    if (hit) {
+      write(7, MIX_C_DRUM);
+      write(6, hit.np & 0x1f); // noise period
+      write(REG_VOL[2], hit.vol & 0x0f);
+    } else {
+      write(7, MIX_DEFAULT);
+      const { period, vol, age } = chFrames[2][f];
+      write(REG_FINE[2], period & 0xff);
+      write(REG_COARSE[2], (period >> 8) & 0x0f);
+      write(REG_VOL[2], decayVol(vol, age));
     }
     cmds.push(0x62); // wait one frame
     totalSamples += SAMPLES_PER_FRAME;

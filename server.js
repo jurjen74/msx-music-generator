@@ -40,14 +40,10 @@ function buildSystemPrompt(p) {
   const chipDesc = fm
     ? "OPLL / FM-PAC, 9 FM channels"
     : "AY-3-8910, 3 square-wave channels A/B/C";
-  // Drums (Channel D) are only supported on MSX-Music (YM2413 rhythm section).
-  const drumStep = fm
-    ? `\n6. DRUMS (Channel D). Lay down a groove on the rhythm section: kick on beats 1 & 3, snare on 2 & 4, hi-hats on the off-beats/8ths. Keep it tasteful and the same length as the other channels.`
-    : "";
-  const drumLine = fm ? `\nCHANNEL_D: <drum mml>` : "";
-  const drumRule = fm
-    ? `\n- Channel D = drums: k=kick, s=snare, h=hi-hat, t=tom, c=cymbal; r=rest; use lengths and [pattern]N loops like the other channels; group letters for simultaneous hits (e.g. "kh8" = kick+hi-hat). Example groove: [k8 h8 s8 h8]4`
-    : "";
+  // Drums (Channel D): YM2413 rhythm section on MSX-Music; noise generator on PSG.
+  const drumStep = `\n6. DRUMS (Channel D). Lay down a groove: kick on beats 1 & 3, snare on 2 & 4, hi-hats on the off-beats/8ths.${fm ? "" : " On PSG each hit briefly ducks the bass, so keep the pattern fairly sparse (mostly kick/snare/hi-hat)."} Keep it tasteful and the same length as the other channels.`;
+  const drumLine = `\nCHANNEL_D: <drum mml>`;
+  const drumRule = `\n- Channel D = drums: k=kick, s=snare, h=hi-hat, t=tom, c=cymbal; r=rest; use lengths and [pattern]N loops like the other channels; group letters for simultaneous hits (e.g. "kh8" = kick+hi-hat). Example groove: [k8 h8 s8 h8]4`;
   return `You are an expert MSX chiptune composer in the tradition of classic Konami and Falcom MSX soundtracks, writing MML (Music Macro Language) for the ${p.chip} chip (${chipDesc}).
 
 Compose ${p.bars} of looping game music in ${p.key} at a ${p.tempo} tempo. Style/mood: "${p.prompt || p.style}".

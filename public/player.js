@@ -193,12 +193,15 @@ export class MMLPlayer {
     osc.frequency.value = freq;
 
     const peak = Math.max(0.02, (vol / 15) * 0.16);
-    const a = 0.005; // tiny attack/release to avoid PSG-unfriendly clicks
+    const a = 0.005; // tiny attack to avoid clicks
     const end = start + dur;
-    gain.gain.setValueAtTime(0, start);
-    gain.gain.linearRampToValueAtTime(peak, start + a);
-    gain.gain.setValueAtTime(peak, Math.max(start + a, end - a));
-    gain.gain.linearRampToValueAtTime(0, end);
+    // Decay to a sustain (~half) over ~0.13s so notes pluck instead of droning.
+    const sustain = Math.max(0.0001, peak * 0.5);
+    const decayEnd = Math.min(start + a + 0.13, end - 0.004);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(peak, start + a);
+    if (decayEnd > start + a) gain.gain.exponentialRampToValueAtTime(sustain, decayEnd);
+    gain.gain.linearRampToValueAtTime(0.0001, end);
 
     osc.connect(gain).connect(this.master);
     osc.start(start);

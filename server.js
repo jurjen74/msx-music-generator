@@ -20,7 +20,7 @@ try {
 
 const PORT = process.env.PORT || 5173;
 const API_KEY = process.env.ANTHROPIC_API_KEY;
-const MODEL = process.env.MSX_MODEL || "claude-sonnet-4-6";
+const MODEL = process.env.MSX_MODEL || "claude-opus-4-8";
 // Optional: path to MSXgl's MSXzip binary. When set, enables /api/lvgm
 // (VGM -> compact lVGM conversion) and the "Download .lvgm" button in the UI.
 const MSXZIP = process.env.MSXZIP;
@@ -75,7 +75,13 @@ MML syntax rules:
 - Volume: v1-v15 — use it for dynamics and accents (e.g. louder on downbeats, softer harmony than melody)
 - Loop: [pattern]N to repeat a figure compactly
 - Channel A = melody, Channel B = harmony/arpeggios, Channel C = bass${drumRule}
-- CRITICAL: all channels MUST have exactly the same total duration (sum of note+rest lengths) so they stay in sync and loop seamlessly. Count carefully and double-check before answering.`;
+- CRITICAL: all channels MUST have exactly the same total duration (sum of note+rest lengths) so they stay in sync and loop seamlessly. Count carefully and double-check before answering.
+
+Here is the LEVEL of craft to aim for — a short A-minor fragment. Study its melodic motif and dotted rhythm, the 16th-note arpeggios, the root-fifth bass, and the drum groove. Then compose something ORIGINAL for the requested key and mood — do NOT copy these notes:
+CHANNEL_A: o5 a4. g8 e4 d8 e8 c4 a8 >c8 <a2
+CHANNEL_B: o4 [a16 c16 e16 c16]4 [e16 g16 b16 g16]4
+CHANNEL_C: o2 [a8 e8]4 [e8 b8]4
+CHANNEL_D: [k8 h8 s8 h8]4`;
 }
 
 function parseModelText(text) {

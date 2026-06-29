@@ -10,9 +10,9 @@ A bundled **[MSXgl example](msxgl-example/)** turns any exported `.vgm` into a r
 
 > ⚠️ **Tested on macOS only** (Node 24, openMSX 21, Apple Silicon). The app is plain Node + browser and the formats are standard, so Windows and Linux are expected to work — but those instructions are provided for completeness and have **not** been verified. Reports and fixes welcome.
 
-| Describe & choose the chip | Generated MML — preview & export |
+| Describe, improve & choose the chip | Generated MML — preview & export |
 |:--:|:--:|
-| ![Generator UI with MSX-Music selected and FM voice pickers](assets/app-generator.png) | ![Generated three-channel MML with playback and export buttons](assets/app-generated.png) |
+| ![Generator UI with the Improve-with-AI button, MSX-Music selected and FM voice pickers](assets/app-generator.png) | ![Generated four-channel MML (melody, harmony, bass, drums) with playback and export buttons](assets/app-generated.png) |
 
 ```
                           ┌─ PSG .vgm ─┐

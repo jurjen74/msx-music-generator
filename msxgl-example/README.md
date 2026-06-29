@@ -92,6 +92,8 @@ openmsx -machine C-BIOS_MSX2+ -ext fmpac -cart prebuilt/s_mymusic_lvgm.rom
 openmsx -machine C-BIOS_MSX2+ -ext fmpac -cart prebuilt/s_mymusic_multi.rom
 ```
 
+▶ See the two-track ROM in action: **[demo video on YouTube](https://youtu.be/-Ld41CIMxL0)**.
+
 All verified in openMSX. Sources in `prebuilt/`: `title_screen_fm.vgm` / `.lvgm`
 (the fanfare), `title_screen_psg.lvgm` (the multi's PSG track), and the small
 `demo_psg.*` / `demo_fm.*` C-major reference files.

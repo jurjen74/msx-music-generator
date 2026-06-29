@@ -8,6 +8,12 @@ A small, dependency-free local web app that:
 
 A bundled **[MSXgl example](msxgl-example/)** turns any exported `.vgm` into a runnable MSX ROM.
 
+### ▶ Demo
+
+[![Watch the demo on YouTube](https://img.youtube.com/vi/-Ld41CIMxL0/hqdefault.jpg)](https://youtu.be/-Ld41CIMxL0)
+
+Two AI-composed tracks — **PSG** and **MSX-Music (FM)** — switching in one MSX ROM, running in openMSX. ([watch on YouTube](https://youtu.be/-Ld41CIMxL0))
+
 > ⚠️ **Tested on macOS only** (Node 24, openMSX 21, Apple Silicon). The app is plain Node + browser and the formats are standard, so Windows and Linux are expected to work — but those instructions are provided for completeness and have **not** been verified. Reports and fixes welcome.
 
 | Describe, improve & choose the chip | Generated MML — preview & export |

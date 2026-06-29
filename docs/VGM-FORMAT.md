@@ -107,11 +107,28 @@ Data begins at `0x100`.
 
 ### Smaller files: lVGM
 
-MSXgl ships **lVGM** ("light VGM") + `lvgm_player` for compact PSG playback.
-Convert a standard `.vgm` to `.lvgm` with MSXgl's **MSXzip** tool, then use
-`MUSIC_MODULE: "vgm/lvgm_player"` with `#define LVGM_USE_PSG TRUE`. This is the
-recommended route for ROM-size-constrained games, since VGM register logs are
-larger than tracker formats.
+**lVGM** ("light VGM") is an MSX-optimized, compressed VGM played by MSXgl's
+`vgm/lvgm_player`. It's the recommended on-MSX format because VGM register logs
+are bulky — in our demo it shrinks PSG **629 → 92 bytes** and FM **812 → 187**
+(≈ 75–85% smaller). It supports both PSG and MSX-Music (`LVGM_USE_PSG` /
+`LVGM_USE_MSXMUSIC`).
+
+We **don't reimplement** the lVGM encoder (its variable-length opcode format is
+intricate); instead we use MSXgl's own, guaranteed-correct **MSXzip** converter:
+
+```bash
+# direct: VGM -> compressed lVGM C array
+MSXzip your.vgm -lVGM -c -o music_lvgm.h -t g_Music
+
+# or via the repo wrapper (set MSXZIP to the MSXgl binary first)
+MSXZIP=/path/to/MSXgl/tools/MSXtk/bin/MSXzip \
+  node tools/vgm2lvgm.mjs your.vgm music_lvgm.h g_Music
+```
+
+MSXzip outputs a C array directly (no separate bin2c step). The ready-to-build
+`s_mymusic_lvgm` variant in [`msxgl-example/`](../msxgl-example/) plays it with
+`LVGM_Play` / `LVGM_Decode`. Useful MSXzip flags: `--freq 50|60`, `-bin` (binary
+output), `--simplify` (reorder + dedupe register writes).
 
 ## MSX-Music (YM2413 / OPLL) export
 

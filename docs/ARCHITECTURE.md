@@ -18,8 +18,8 @@ msx-music-generator/
 │   ├── vgm.js             MML → PSG (AY-3-8910) VGM exporter
 │   ├── vgm-opll.js        MML/PSG → MSX-Music (YM2413 FM) VGM exporter + transcoder
 │   └── vgmplay.js         VGM decoder + Web Audio playback (PSG)
-├── tools/                 Node CLIs: bin2c.mjs, vgm2c.mjs, vgm-psg2opll.mjs
-├── msxgl-example/         ready-to-build MSXgl ROM that plays an exported .vgm
+├── tools/                 Node CLIs: bin2c, vgm2c, vgm-psg2opll, vgm2lvgm (MSXzip wrapper)
+├── msxgl-example/         ready-to-build MSXgl ROMs (VGM + lVGM) that play an exported track
 └── docs/                  this documentation
 ```
 

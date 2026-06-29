@@ -3,6 +3,9 @@ node_modules/
 *.mml
 *.ndp
 *.vgm
-# but keep the example's working demo VGMs:
+*.lvgm
+*.lvm
+# but keep the example's working demo files:
 !msxgl-example/prebuilt/*.vgm
+!msxgl-example/prebuilt/*.lvgm
 .DS_Store

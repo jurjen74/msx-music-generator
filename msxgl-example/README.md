@@ -1,15 +1,18 @@
 # MSXgl example — play your generated music on MSX
 
 A minimal [MSXgl](https://github.com/aoineko-fr/MSXgl) project that plays a
-single `.vgm` exported by the **MSX MML Music Generator** (the web app in the
-parent folder), looping forever. It works with both export formats:
+single track exported by the **MSX MML Music Generator** (the web app in the
+parent folder), looping forever. It supports:
 
-- **PSG** (AY-3-8910 square waves), and
-- **MSX-Music** (YM2413 FM) — needs the FM-PAC extension when emulating.
+- **PSG** (AY-3-8910 square waves) and **MSX-Music** (YM2413 FM — needs the
+  FM-PAC extension when emulating), and
+- both **standard VGM** (`s_mymusic`) and compact **lVGM** (`s_mymusic_lvgm`,
+  75–85% smaller — recommended for real projects).
 
 ```
 Web app:  describe → Generate → Download .vgm
-This dir:  .vgm → music_vgm.h → build → s_mymusic.rom → openMSX / real MSX
+This dir:  .vgm ─→ music_vgm.h  ─→ build s_mymusic       ─→ ROM ─→ openMSX / real MSX
+           .vgm ─→ (MSXzip) ─→ music_lvgm.h ─→ build s_mymusic_lvgm ─┘   (smaller)
 ```
 
 > ⚠️ **Tested on macOS only** (MSXgl 1.4.1, openMSX 21, Apple Silicon). The prebuilt
@@ -49,11 +52,15 @@ openmsx -machine C-BIOS_MSX2+ -cart prebuilt/s_mymusic_psg.rom
 
 # MSX-Music (YM2413 FM) version — needs the FM-PAC extension
 openmsx -machine C-BIOS_MSX2+ -ext fmpac -cart prebuilt/s_mymusic_fm.rom
+
+# Same tracks as compact lVGM (see "Smaller ROMs with lVGM" below)
+openmsx -machine C-BIOS_MSX2+ -cart prebuilt/s_mymusic_lvgm_psg.rom
+openmsx -machine C-BIOS_MSX2+ -ext fmpac -cart prebuilt/s_mymusic_lvgm_fm.rom
 ```
 
-Both were built with the steps below and verified in openMSX. `prebuilt/demo_psg.vgm`
-and `prebuilt/demo_fm.vgm` are the exact files fed into them — drop them into the
-web app's tools or inspect them to see what the generator produces.
+All four were built with the steps below and verified in openMSX. The matching
+source files are in `prebuilt/` too: `demo_psg.vgm` / `demo_fm.vgm` (standard VGM)
+and `demo_psg.lvgm` / `demo_fm.lvgm` (compressed lVGM).
 
 ## Build it yourself — the included demo track
 
@@ -112,21 +119,45 @@ node tools/vgm-psg2opll.mjs your_psg.vgm your_fm.vgm
 node tools/bin2c.mjs your_fm.vgm /path/to/MSXgl/projects/samples/music_vgm.h g_Music
 ```
 
+## Smaller ROMs with lVGM (recommended for real projects)
+
+**lVGM** ("light VGM") is an MSX-optimized, compressed form of VGM — typically
+**75–85% smaller** (our demo: PSG 629 → 92 bytes, FM 812 → 187). It's played by
+MSXgl's `vgm/lvgm_player`. Use the `s_mymusic_lvgm.*` variant in this folder.
+
+Conversion uses MSXgl's own **MSXzip** tool (the official, correct encoder — we
+don't reimplement it). The parent repo has a thin wrapper:
+
+```bash
+# point MSXZIP at the binary in your MSXgl install (MSXzip.exe on Windows)
+export MSXZIP=/path/to/MSXgl/tools/MSXtk/bin/MSXzip
+
+# .vgm → compressed lVGM C array (g_Music[]), straight into MSXgl's samples folder
+node tools/vgm2lvgm.mjs your_track.vgm /path/to/MSXgl/projects/samples/music_lvgm.h g_Music
+
+# build + run the lVGM variant (add -ext fmpac for an MSX-Music file)
+cd /path/to/MSXgl/projects/samples/
+bash build.sh s_mymusic_lvgm           # Windows: build.bat s_mymusic_lvgm
+openmsx -machine C-BIOS_MSX2+ -cart out/s_mymusic_lvgm.rom
+```
+
+Or call MSXzip directly: `MSXzip your_track.vgm -lVGM -c -o music_lvgm.h -t g_Music`.
+
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `s_mymusic.c` | The program: inits the screen + chips, `VGM_Play`, `VGM_Decode` each frame |
-| `s_mymusic.js` | MSXgl project config — `ROM_32K`, PSG + MSX-Music + SCC + MSX-Audio + VGM player modules |
+| `s_mymusic.c` / `.js` | Standard-VGM player: inits screen + chips, `VGM_Play` / `VGM_Decode` each frame |
 | `music_vgm.h` | The generated music as a C byte array (`g_Music[]`) — replace with your own |
-| `prebuilt/` | Ready-to-run `s_mymusic_psg.rom` / `s_mymusic_fm.rom` + their source `.vgm` files |
+| `s_mymusic_lvgm.c` / `.js` | Compact-**lVGM** player variant (`LVGM_Play` / `LVGM_Decode`) |
+| `music_lvgm.h` | The demo track as a compressed lVGM C array (`g_Music[]`) |
+| `prebuilt/` | Ready-to-run ROMs (`*_psg` / `*_fm`, plain and `*_lvgm_*`) + their `.vgm` / `.lvgm` sources |
 
 ## Notes
 
-- The ROM links every chip the VGM player supports, so the **same ROM** plays
-  PSG or MSX-Music files without reconfiguration. To shrink it, you can drop
-  unused modules from `s_mymusic.js` and set the matching `VGM_USE_*` defines.
+- The ROM links every chip the player supports, so the **same ROM** plays PSG or
+  MSX-Music files without reconfiguration. To shrink it further, drop unused
+  modules from the `.js` and set the matching `VGM_USE_*` / `LVGM_USE_*` defines.
 - `Target = "ROM_32K"` fits a short track. For longer/larger music, raise the
   target (e.g. `ROM_48K_ISR`) or use banking like MSXgl's own `s_vgm` sample.
-- MSXgl ships a `MSXzip` tool that converts VGM to the compact **lVGM** format
-  (`vgm/lvgm_player`) for size-constrained ROMs — see MSXgl's docs.
+- For real projects, prefer **lVGM** — it's much smaller and plays the same.

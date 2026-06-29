@@ -17,7 +17,7 @@
 //   0x30+c : bits4-7 = instrument (1-15 built-in), bits0-3 = attenuation (0=loud)
 
 import { decodeVGM } from "./vgmplay.js";
-import { parseAlignedChannels, drumOnsets } from "./player.js";
+import { parseAlignedChannels, drumOnsets, loopPointSeconds } from "./player.js";
 
 // Built-in OPLL instrument names, indexed 1..15 (0 = user/custom patch).
 export const OPLL_INSTRUMENTS = [
@@ -74,10 +74,11 @@ export function psgFramesFromVGM(u8) {
 
 // Build an OPLL VGM (Uint8Array) from per-channel per-frame { freq, vol } data.
 // `onsets` (optional) is a per-frame drum bitmask for the YM2413 rhythm section.
-export function buildOPLLfromFrames(frames, loop = true, instruments = DEFAULT_INSTRUMENTS, onsets = null) {
+export function buildOPLLfromFrames(frames, loop = true, instruments = DEFAULT_INSTRUMENTS, onsets = null, loopFrame = 0) {
   const frameCount = Math.max(...frames.map((f) => f.length), onsets ? onsets.length : 0, 1);
   const cmds = [];
   const write = (r, v) => cmds.push(0x51, r & 0xff, v & 0xff);
+  let loopBytePos = 0;
 
   const useRhythm = onsets && onsets.some((b) => b);
   if (useRhythm) {
@@ -98,6 +99,12 @@ export function buildOPLLfromFrames(frames, loop = true, instruments = DEFAULT_I
 
   let totalSamples = 0;
   for (let f = 0; f < frameCount; f++) {
+    // At the loop point, force notes/rhythm to re-key so the seam is clean.
+    if (loopFrame > 0 && f === loopFrame) {
+      loopBytePos = cmds.length;
+      for (const s of st) { s.on = false; s.fnum = -1; s.block = -1; s.atten = -1; s.inst = -1; }
+      lastRhythm = -1;
+    }
     for (let c = 0; c < 3; c++) {
       const cell = frames[c][f] || { freq: 0, vol: 0 };
       const on = cell.vol > 0 && cell.freq > 0;
@@ -145,8 +152,8 @@ export function buildOPLLfromFrames(frames, loop = true, instruments = DEFAULT_I
   dv.setUint32(0x10, OPLL_CLOCK, true); // YM2413 clock
   dv.setUint32(0x18, totalSamples, true);
   if (loop) {
-    dv.setUint32(0x1c, HEADER_SIZE - 0x1c, true);
-    dv.setUint32(0x20, totalSamples, true);
+    dv.setUint32(0x1c, HEADER_SIZE + loopBytePos - 0x1c, true);
+    dv.setUint32(0x20, totalSamples - loopFrame * SAMPLES_PER_FRAME, true);
   }
   dv.setUint32(0x24, RATE, true);
   dv.setUint32(0x34, HEADER_SIZE - 0x34, true);
@@ -188,5 +195,6 @@ export function buildOPLLfromMML(channels, bpm, loop = true, instruments = DEFAU
   const frames = mmlToFrames(channels, bpm);
   const frameCount = frames[0].length;
   const onsets = channels.D ? drumOnsets(channels.D, bpm, frameCount, RATE) : null;
-  return buildOPLLfromFrames(frames, loop, instruments, onsets);
+  const loopFrame = Math.min(frameCount, Math.round(loopPointSeconds(channels, bpm) * RATE));
+  return buildOPLLfromFrames(frames, loop, instruments, onsets, loopFrame);
 }

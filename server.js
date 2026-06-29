@@ -74,6 +74,7 @@ MML syntax rules:
 - Tie: & (c4&c8) for held/longer notes
 - Volume: v1-v15 — use it for dynamics and accents (e.g. louder on downbeats, softer harmony than melody)
 - Loop: [pattern]N to repeat a figure compactly
+- "/" = OPTIONAL loop point: everything before it plays once as an intro, then playback repeats from "/" to the end. If you use it, place "/" at the SAME musical position in EVERY channel. Omit it entirely for a simple whole-track loop (most pieces).
 - Channel A = melody, Channel B = harmony/arpeggios, Channel C = bass${drumRule}
 - CRITICAL: all channels MUST have exactly the same total duration (sum of note+rest lengths) so they stay in sync and loop seamlessly. Count carefully and double-check before answering.
 

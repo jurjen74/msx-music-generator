@@ -40,6 +40,7 @@ length and shorter channels simply fall silent for the remainder.
 | `t<bpm>` | Tempo | Global; supplied to the parser separately (the `TEMPO:` field). Inline `t` inside a channel is skipped. |
 | `&` | Tie | `c4&c8` joins two **same-pitch** notes into one (durations add). Different pitches play sequentially. |
 | `[ … ]N` | Loop | Repeats the bracketed pattern N times: `[c8 d8]4`. N defaults to **2** if omitted. Nested loops are supported (innermost resolved first). |
+| `/` | Loop point | Optional. Everything before `/` plays once as an **intro**; playback then repeats from `/` to the end. Place it at the **same position in every channel**, or omit it for a whole-track loop. Sets the VGM/lVGM loop offset. |
 | whitespace | Ignored | Use freely for readability. |
 | unknown chars | Skipped | The parser ignores anything it doesn't recognize rather than erroring. |
 

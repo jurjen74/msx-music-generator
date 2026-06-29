@@ -10,7 +10,7 @@
 //
 // VGM spec: https://vgmrips.net/wiki/VGM_Specification
 
-import { parseAlignedChannels, parseDrumChannel } from "./player.js";
+import { parseAlignedChannels, parseDrumChannel, loopPointSeconds } from "./player.js";
 
 const PSG_CLOCK = 1789772; // MSX PSG: 3.579545 MHz / 2
 const RATE = 60; // NTSC frames per second
@@ -91,6 +91,8 @@ export function buildVGM(channels, bpm, loop = true) {
   const chFrames = evs.map((e) => channelFrames(e, frameCount));
   // Drums (optional) overlay channel C via the noise generator.
   const drums = channels.D ? drumOverlay(channels.D, bpm, frameCount) : null;
+  // Optional loop point ("/" marker): intro plays once, then loop from here.
+  const loopFrame = Math.min(frameCount, Math.round(loopPointSeconds(channels, bpm) * RATE));
 
   // Build the command stream, only emitting register writes that changed.
   const cmds = [];
@@ -108,7 +110,13 @@ export function buildVGM(channels, bpm, loop = true) {
   write(7, MIX_DEFAULT);
 
   let totalSamples = 0;
+  let loopBytePos = 0; // data offset where the loop restarts (0 = whole track)
   for (let f = 0; f < frameCount; f++) {
+    // At the loop point, force a full register re-write so the seam is clean.
+    if (loopFrame > 0 && f === loopFrame) {
+      loopBytePos = cmds.length;
+      reg.fill(-1);
+    }
     // Channels A and B: tonal with decay.
     for (let c = 0; c < 2; c++) {
       const { period, vol, age } = chFrames[c][f];
@@ -145,8 +153,8 @@ export function buildVGM(channels, bpm, loop = true) {
   dv.setUint32(0x08, 0x00000151, true); // version 1.51 (AY8910 support)
   dv.setUint32(0x18, totalSamples, true); // total # samples
   if (loop) {
-    dv.setUint32(0x1c, HEADER_SIZE - 0x1c, true); // loop offset -> data start
-    dv.setUint32(0x20, totalSamples, true); // loop # samples
+    dv.setUint32(0x1c, HEADER_SIZE + loopBytePos - 0x1c, true); // loop offset
+    dv.setUint32(0x20, totalSamples - loopFrame * SAMPLES_PER_FRAME, true); // loop # samples
   }
   dv.setUint32(0x24, RATE, true); // rate (Hz)
   dv.setUint32(0x34, HEADER_SIZE - 0x34, true); // VGM data offset (relative to 0x34)

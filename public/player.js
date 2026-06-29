@@ -81,11 +81,28 @@ function parseChannel(mml, bpm) {
     } else if (c === "&") {
       i++;
       tieNext = true;
+    } else if (c === "/") {
+      i++;
+      events.push({ midi: null, dur: 0, loop: true }); // loop-start marker
     } else {
       i++; // skip whitespace / unknown
     }
   }
   return events;
+}
+
+// Seconds from the start to the loop marker "/" (intro length), or 0 if none.
+// Uses the first channel that has a marker (A, then B, then C).
+export function loopPointSeconds(channels, bpm) {
+  for (const k of ["A", "B", "C"]) {
+    const evs = parseChannel(channels[k] || "", bpm);
+    let t = 0;
+    for (const n of evs) {
+      if (n.loop) return t;
+      t += n.dur;
+    }
+  }
+  return 0;
 }
 
 // Drum channel: bitmask matches the YM2413 rhythm register (0x0E) trigger bits.
@@ -266,7 +283,16 @@ export class MMLPlayer {
       return 0;
     }
 
-    // Drums (Channel D): collect onset times within the loop.
+    // Flatten notes to absolute start times within the cycle.
+    const notes = [];
+    for (const ev of parsed) {
+      let t = 0;
+      for (const n of ev) {
+        if (n.midi != null) notes.push({ start: t, midi: n.midi, vol: n.vol, dur: n.dur });
+        t += n.dur;
+      }
+    }
+    // Drums (Channel D): onset times within the cycle.
     const drumHits = [];
     if (channels.D) {
       let t = 0;
@@ -276,33 +302,34 @@ export class MMLPlayer {
       }
     }
 
-    const scheduleCycle = (base) => {
-      for (const ev of parsed) {
-        let t = base;
-        for (const n of ev) {
-          if (n.midi != null) this._scheduleNote(n.midi, n.vol, t, n.dur);
-          t += n.dur;
-        }
-      }
-      for (const d of drumHits) this._scheduleDrum(d.bits, base + d.t);
+    // Optional loop point: intro (0..loopTime) plays once, then loop the body.
+    const loopTime = Math.min(cycle, loopPointSeconds(channels, bpm));
+    const bodyLen = Math.max(0.05, cycle - loopTime);
+
+    const scheduleSegment = (base, fromTime) => {
+      for (const n of notes)
+        if (n.start >= fromTime - 1e-6) this._scheduleNote(n.midi, n.vol, base + (n.start - fromTime), n.dur);
+      for (const d of drumHits)
+        if (d.t >= fromTime - 1e-6) this._scheduleDrum(d.bits, base + (d.t - fromTime));
     };
 
-    const startAt = this.ctx.currentTime + 0.08;
-    let cyclesScheduled = 0;
+    let nextBase = this.ctx.currentTime + 0.08;
+    let first = true;
     const scheduleNext = () => {
       if (!this.playing) return;
-      scheduleCycle(startAt + cyclesScheduled * cycle);
-      cyclesScheduled++;
+      const fromTime = first ? 0 : loopTime;
+      const segLen = first ? cycle : bodyLen;
+      scheduleSegment(nextBase, fromTime);
+      nextBase += segLen;
+      first = false;
       if (loop) {
-        if (cyclesScheduled > 1 && this.onLoop) this.onLoop(cyclesScheduled);
-        const ms = cycle * 1000;
-        this.timers.push(setTimeout(scheduleNext, ms - 60));
+        this.timers.push(setTimeout(scheduleNext, segLen * 1000 - 60));
       } else {
         this.timers.push(
           setTimeout(() => {
             if (this.onEnd) this.onEnd();
             this.stop();
-          }, cycle * 1000 + 200)
+          }, segLen * 1000 + 200)
         );
       }
     };

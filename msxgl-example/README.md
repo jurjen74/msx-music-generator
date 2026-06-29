@@ -70,28 +70,26 @@ a regular Command Prompt / PowerShell, with Node on `PATH`).
 
 ## Try it immediately (prebuilt ROMs — no toolchain needed)
 
-The [`prebuilt/`](prebuilt/) folder contains ready-to-run ROMs of the demo track
-(a short C-major arpeggio), plus the source `.vgm` files they were built from.
-With just an emulator installed you can hear the result right now:
+The [`prebuilt/`](prebuilt/) folder has ready-to-run ROMs plus the source
+`.vgm` / `.lvgm` files they were built from. With just an emulator installed you
+can hear them right now:
 
 ```bash
-# PSG (AY-3-8910) version — runs on any MSX
+# A short C-major demo as standard VGM, PSG then FM (FM needs the FM-PAC extension)
 openmsx -machine C-BIOS_MSX2+ -cart prebuilt/s_mymusic_psg.rom
-
-# MSX-Music (YM2413 FM) version — needs the FM-PAC extension
 openmsx -machine C-BIOS_MSX2+ -ext fmpac -cart prebuilt/s_mymusic_fm.rom
 
-# Same tracks as compact lVGM (see "Smaller ROMs with lVGM" below)
-openmsx -machine C-BIOS_MSX2+ -cart prebuilt/s_mymusic_lvgm_psg.rom
-openmsx -machine C-BIOS_MSX2+ -ext fmpac -cart prebuilt/s_mymusic_lvgm_fm.rom
+# The showcase track as compact lVGM — a D-minor FM title fanfare
+# (instrument changes, vibrato, drums; FM, so -ext fmpac)
+openmsx -machine C-BIOS_MSX2+ -ext fmpac -cart prebuilt/s_mymusic_lvgm.rom
 
-# Two tracks in one ROM — press SPACE to switch (track 2 is FM, so -ext fmpac)
+# Two tracks in one ROM — press SPACE to switch (a PSG track + the FM fanfare)
 openmsx -machine C-BIOS_MSX2+ -ext fmpac -cart prebuilt/s_mymusic_multi.rom
 ```
 
-All four were built with the steps below and verified in openMSX. The matching
-source files are in `prebuilt/` too: `demo_psg.vgm` / `demo_fm.vgm` (standard VGM)
-and `demo_psg.lvgm` / `demo_fm.lvgm` (compressed lVGM).
+All verified in openMSX. Sources in `prebuilt/`: `demo_psg.*` / `demo_fm.*` (the
+C-major demo, VGM + lVGM) and `title_screen_psg.lvgm` / `title_screen_fm.lvgm`
+(the two-track tunes).
 
 ## Build it yourself — the included demo track
 
@@ -199,10 +197,10 @@ To add more than two, extend the `g_Songs` / `g_Names` arrays in `s_mymusic_mult
 | `s_mymusic.c` / `.js` | Standard-VGM player: inits screen + chips, `VGM_Play` / `VGM_Decode` each frame |
 | `music_vgm.h` | The generated music as a C byte array (`g_Music[]`) — replace with your own |
 | `s_mymusic_lvgm.c` / `.js` | Compact-**lVGM** player variant (`LVGM_Play` / `LVGM_Decode`) |
-| `music_lvgm.h` | The demo track as a compressed lVGM C array (`g_Music[]`) |
+| `music_lvgm.h` | The showcase FM fanfare as a compressed lVGM C array (`g_Music[]`) |
 | `s_mymusic_multi.c` / `.js` | **Two tracks in one ROM**, SPACE to switch (`g_Music1` PSG + `g_Music2` FM) |
 | `music1_lvgm.h` / `music2_lvgm.h` | The two demo tracks for the multi player |
-| `prebuilt/` | Ready-to-run ROMs (`*_psg` / `*_fm`, `*_lvgm_*`, `*_multi`) + their `.vgm` / `.lvgm` sources |
+| `prebuilt/` | Ready-to-run ROMs (`s_mymusic_psg/_fm`, `s_mymusic_lvgm`, `s_mymusic_multi`) + their `.vgm` / `.lvgm` sources |
 
 ## Notes
 

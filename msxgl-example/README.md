@@ -75,10 +75,14 @@ The [`prebuilt/`](prebuilt/) folder has ready-to-run ROMs plus the source
 can hear them right now:
 
 The showcase track is a D-minor FM title fanfare (instrument changes, vibrato,
-drums). It's FM, so launch with `-ext fmpac`:
+drums) — FM, so it needs `-ext fmpac`. There's also a tiny PSG demo that runs on
+any MSX with no extension:
 
 ```bash
-# Standard VGM
+# PSG (AY-3-8910) — runs on ANY MSX, no extension needed (a short C-major demo)
+openmsx -machine C-BIOS_MSX2+ -cart prebuilt/s_mymusic_psg.rom
+
+# The FM fanfare as standard VGM
 openmsx -machine C-BIOS_MSX2+ -ext fmpac -cart prebuilt/s_mymusic.rom
 
 # Same track as compact lVGM — ~57% smaller (10.8 KB → 4.6 KB of music data)
@@ -202,7 +206,7 @@ To add more than two, extend the `g_Songs` / `g_Names` arrays in `s_mymusic_mult
 | `music_lvgm.h` | The showcase FM fanfare as a compressed lVGM C array (`g_Music[]`) |
 | `s_mymusic_multi.c` / `.js` | **Two tracks in one ROM**, SPACE to switch (`g_Music1` PSG + `g_Music2` FM) |
 | `music1_lvgm.h` / `music2_lvgm.h` | The two demo tracks for the multi player |
-| `prebuilt/` | Ready-to-run ROMs (`s_mymusic`, `s_mymusic_lvgm`, `s_mymusic_multi`) + their `.vgm` / `.lvgm` sources |
+| `prebuilt/` | Ready-to-run ROMs (`s_mymusic_psg` no-extension demo, `s_mymusic` / `s_mymusic_lvgm` FM fanfare, `s_mymusic_multi`) + their `.vgm` / `.lvgm` sources |
 
 ## Notes
 

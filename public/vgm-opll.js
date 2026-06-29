@@ -17,7 +17,7 @@
 //   0x30+c : bits4-7 = instrument (1-15 built-in), bits0-3 = attenuation (0=loud)
 
 import { decodeVGM } from "./vgmplay.js";
-import { parseAlignedChannels, drumOnsets, loopPointSeconds } from "./player.js";
+import { parseAlignedChannels, drumOnsets, loopPointSeconds, VIB_RATE, VIB_DEPTH } from "./player.js";
 
 // Built-in OPLL instrument names, indexed 1..15 (0 = user/custom patch).
 export const OPLL_INSTRUMENTS = [
@@ -113,14 +113,19 @@ export function buildOPLLfromFrames(frames, loop = true, instruments = DEFAULT_I
         const { fnum, block } = freqToFnumBlock(cell.freq);
         const atten = Math.max(0, Math.min(15, 15 - cell.vol));
         const inst = instruments[c];
-        const newNote = !s.on || fnum !== s.fnum || block !== s.block;
-        if (newNote) {
+        const onset = cell.first || !s.on;
+        if (onset) {
           if (s.on) write(0x20 + c, (s.block << 1) | ((s.fnum >> 8) & 1)); // key-off to retrigger
           write(0x10 + c, fnum & 0xff);
           write(0x20 + c, 0x10 | (block << 1) | ((fnum >> 8) & 1)); // key-on
-        }
-        if (newNote || atten !== s.atten || inst !== s.inst) {
           write(0x30 + c, (inst << 4) | atten);
+        } else {
+          // Continuation: bend pitch for vibrato WITHOUT re-keying (key-on stays set).
+          if (cell.vib && (fnum !== s.fnum || block !== s.block)) {
+            write(0x10 + c, fnum & 0xff);
+            write(0x20 + c, 0x10 | (block << 1) | ((fnum >> 8) & 1));
+          }
+          if (atten !== s.atten || inst !== s.inst) write(0x30 + c, (inst << 4) | atten);
         }
         s.on = true;
         s.fnum = fnum;
@@ -173,16 +178,21 @@ export function mmlToFrames(channels, bpm) {
   const cycle = Math.max(...evs.map((e) => e.reduce((s, n) => s + n.dur, 0)), 0);
   const frameCount = Math.max(1, Math.round(cycle * RATE));
   return evs.map((events) => {
-    const frames = Array.from({ length: frameCount }, () => ({ freq: 0, vol: 0 }));
+    const frames = Array.from({ length: frameCount }, () => ({ freq: 0, vol: 0, first: false, vib: false }));
     let t = 0;
     for (const ev of events) {
       const startF = Math.round(t * RATE);
       const endF = Math.round((t + ev.dur) * RATE);
-      const cell =
-        ev.midi != null
-          ? { freq: 440 * Math.pow(2, (ev.midi - 69) / 12), vol: Math.max(0, Math.min(15, ev.vol)) }
-          : { freq: 0, vol: 0 };
-      for (let f = startF; f < endF && f < frameCount; f++) frames[f] = cell;
+      if (ev.midi != null) {
+        const base = 440 * Math.pow(2, (ev.midi - 69) / 12);
+        const vol = Math.max(0, Math.min(15, ev.vol));
+        for (let f = startF; f < endF && f < frameCount; f++) {
+          const age = f - startF;
+          let freq = base;
+          if (ev.vib && age > 3) freq = base * (1 + VIB_DEPTH * Math.sin((2 * Math.PI * VIB_RATE * age) / RATE));
+          frames[f] = { freq, vol, first: age === 0, vib: !!ev.vib };
+        }
+      }
       t += ev.dur;
     }
     return frames;

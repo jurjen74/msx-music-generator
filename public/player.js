@@ -4,6 +4,10 @@
 
 const NOTE_SEMITONE = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
 
+// Vibrato (the "~" command): pitch wobble shared by preview and exporters.
+export const VIB_RATE = 6; // Hz
+export const VIB_DEPTH = 0.018; // ±1.8% of the pitch (~⅓ semitone)
+
 // Expand [pattern]N loops by resolving the innermost bracket first (handles nesting).
 function expandLoops(s) {
   const re = /\[([^\[\]]*)\](\d*)/;
@@ -25,6 +29,7 @@ function parseChannel(mml, bpm) {
   let defLen = 4;
   let vol = 11;
   let tieNext = false;
+  let vib = false; // vibrato on/off for following notes ("~")
   let i = 0;
 
   const readInt = () => {
@@ -55,7 +60,7 @@ function parseChannel(mml, bpm) {
       const midi = (octave + 1) * 12 + semi; // o4 c = MIDI 60 = C4
       const last = events[events.length - 1];
       if (tieNext && last && last.midi === midi) last.dur += dur;
-      else events.push({ midi, dur, vol });
+      else events.push({ midi, dur, vol, vib });
       tieNext = false;
     } else if (c === "r") {
       i++;
@@ -81,6 +86,10 @@ function parseChannel(mml, bpm) {
     } else if (c === "&") {
       i++;
       tieNext = true;
+    } else if (c === "~") {
+      i++;
+      const n = readInt();
+      vib = n === null ? true : n > 0; // ~ or ~1+ = on, ~0 = off
     } else if (c === "/") {
       i++;
       events.push({ midi: null, dur: 0, loop: true }); // loop-start marker
@@ -202,12 +211,23 @@ export class MMLPlayer {
     this.onLoop = null;
   }
 
-  _scheduleNote(midi, vol, start, dur) {
+  _scheduleNote(midi, vol, start, dur, vib = false) {
     const freq = 440 * Math.pow(2, (midi - 69) / 12);
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = "square";
     osc.frequency.value = freq;
+
+    // Vibrato: a small pitch LFO that fades in shortly after the attack.
+    if (vib && dur > 0.12) {
+      const lfo = this.ctx.createOscillator();
+      const ld = this.ctx.createGain();
+      lfo.frequency.value = VIB_RATE;
+      ld.gain.value = freq * VIB_DEPTH;
+      lfo.connect(ld).connect(osc.frequency);
+      lfo.start(start + 0.06);
+      lfo.stop(start + dur + 0.02);
+    }
 
     const peak = Math.max(0.02, (vol / 15) * 0.16);
     const a = 0.005; // tiny attack to avoid clicks
@@ -288,7 +308,7 @@ export class MMLPlayer {
     for (const ev of parsed) {
       let t = 0;
       for (const n of ev) {
-        if (n.midi != null) notes.push({ start: t, midi: n.midi, vol: n.vol, dur: n.dur });
+        if (n.midi != null) notes.push({ start: t, midi: n.midi, vol: n.vol, dur: n.dur, vib: n.vib });
         t += n.dur;
       }
     }
@@ -308,7 +328,7 @@ export class MMLPlayer {
 
     const scheduleSegment = (base, fromTime) => {
       for (const n of notes)
-        if (n.start >= fromTime - 1e-6) this._scheduleNote(n.midi, n.vol, base + (n.start - fromTime), n.dur);
+        if (n.start >= fromTime - 1e-6) this._scheduleNote(n.midi, n.vol, base + (n.start - fromTime), n.dur, n.vib);
       for (const d of drumHits)
         if (d.t >= fromTime - 1e-6) this._scheduleDrum(d.bits, base + (d.t - fromTime));
     };

@@ -10,7 +10,7 @@
 //
 // VGM spec: https://vgmrips.net/wiki/VGM_Specification
 
-import { parseAlignedChannels, parseDrumChannel, loopPointSeconds } from "./player.js";
+import { parseAlignedChannels, parseDrumChannel, loopPointSeconds, VIB_RATE, VIB_DEPTH } from "./player.js";
 
 const PSG_CLOCK = 1789772; // MSX PSG: 3.579545 MHz / 2
 const RATE = 60; // NTSC frames per second
@@ -46,9 +46,17 @@ function channelFrames(events, frameCount) {
     const startF = Math.round(t * RATE);
     const endF = Math.round((t + ev.dur) * RATE);
     if (ev.midi != null) {
-      const period = midiToPeriod(ev.midi);
+      const base = midiToPeriod(ev.midi);
       const vol = Math.max(0, Math.min(15, ev.vol));
-      for (let f = startF; f < endF && f < frameCount; f++) frames[f] = { period, vol, age: f - startF };
+      for (let f = startF; f < endF && f < frameCount; f++) {
+        const age = f - startF;
+        let period = base;
+        if (ev.vib && age > 3) {
+          const mod = 1 + VIB_DEPTH * Math.sin((2 * Math.PI * VIB_RATE * age) / RATE);
+          period = Math.max(1, Math.min(4095, Math.round(base * mod)));
+        }
+        frames[f] = { period, vol, age };
+      }
     }
     t += ev.dur;
   }

@@ -112,7 +112,7 @@ export function buildOPLLfromFrames(frames, loop = true, instruments = DEFAULT_I
       if (on) {
         const { fnum, block } = freqToFnumBlock(cell.freq);
         const atten = Math.max(0, Math.min(15, 15 - cell.vol));
-        const inst = instruments[c];
+        const inst = cell.inst != null ? cell.inst : instruments[c]; // per-note "@n" override
         const onset = cell.first || !s.on;
         if (onset) {
           if (s.on) write(0x20 + c, (s.block << 1) | ((s.fnum >> 8) & 1)); // key-off to retrigger
@@ -190,7 +190,7 @@ export function mmlToFrames(channels, bpm) {
           const age = f - startF;
           let freq = base;
           if (ev.vib && age > 3) freq = base * (1 + VIB_DEPTH * Math.sin((2 * Math.PI * VIB_RATE * age) / RATE));
-          frames[f] = { freq, vol, first: age === 0, vib: !!ev.vib };
+          frames[f] = { freq, vol, first: age === 0, vib: !!ev.vib, inst: ev.inst ?? null };
         }
       }
       t += ev.dur;

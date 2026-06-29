@@ -44,6 +44,9 @@ function buildSystemPrompt(p) {
   const drumStep = `\n6. DRUMS (Channel D). Lay down a groove: kick on beats 1 & 3, snare on 2 & 4, hi-hats on the off-beats/8ths.${fm ? "" : " On PSG each hit briefly ducks the bass, so keep the pattern fairly sparse (mostly kick/snare/hi-hat)."} Keep it tasteful and the same length as the other channels.`;
   const drumLine = `\nCHANNEL_D: <drum mml>`;
   const drumRule = `\n- Channel D = drums: k=kick, s=snare, h=hi-hat, t=tom, c=cymbal; r=rest; use lengths and [pattern]N loops like the other channels; group letters for simultaneous hits (e.g. "kh8" = kick+hi-hat). Example groove: [k8 h8 s8 h8]4`;
+  const instRule = fm
+    ? `\n- "@n" = FM instrument (n=1-15), changes the voice for following notes on that channel — use it for section contrast (e.g. a brighter lead in the B section). 1 Violin, 2 Guitar, 3 Piano, 4 Flute, 5 Clarinet, 6 Oboe, 7 Trumpet, 8 Organ, 9 Horn, 10 Synth, 11 Harpsichord, 12 Vibraphone, 13 Synth Bass, 14 Acoustic Bass, 15 Electric Guitar.`
+    : "";
   return `You are an expert MSX chiptune composer in the tradition of classic Konami and Falcom MSX soundtracks, writing MML (Music Macro Language) for the ${p.chip} chip (${chipDesc}).
 
 Compose ${p.bars} of looping game music in ${p.key} at a ${p.tempo} tempo. Style/mood: "${p.prompt || p.style}".
@@ -76,7 +79,7 @@ MML syntax rules:
 - "~" = vibrato: notes after "~" get an expressive pitch wobble; "~0" turns it off. Use it tastefully on sustained/lead melody notes (Channel A), not on fast runs, arpeggios, or bass.
 - Loop: [pattern]N to repeat a figure compactly
 - "/" = OPTIONAL loop point: everything before it plays once as an intro, then playback repeats from "/" to the end. If you use it, place "/" at the SAME musical position in EVERY channel. Omit it entirely for a simple whole-track loop (most pieces).
-- Channel A = melody, Channel B = harmony/arpeggios, Channel C = bass${drumRule}
+- Channel A = melody, Channel B = harmony/arpeggios, Channel C = bass${drumRule}${instRule}
 - CRITICAL: all channels MUST have exactly the same total duration (sum of note+rest lengths) so they stay in sync and loop seamlessly. Count carefully and double-check before answering.
 
 Here is the LEVEL of craft to aim for — a short A-minor fragment. Study its melodic motif and dotted rhythm, the 16th-note arpeggios, the root-fifth bass, and the drum groove. Then compose something ORIGINAL for the requested key and mood — do NOT copy these notes:

@@ -30,6 +30,7 @@ function parseChannel(mml, bpm) {
   let vol = 11;
   let tieNext = false;
   let vib = false; // vibrato on/off for following notes ("~")
+  let inst = null; // FM instrument override for following notes ("@n"); null = channel default
   let i = 0;
 
   const readInt = () => {
@@ -60,7 +61,7 @@ function parseChannel(mml, bpm) {
       const midi = (octave + 1) * 12 + semi; // o4 c = MIDI 60 = C4
       const last = events[events.length - 1];
       if (tieNext && last && last.midi === midi) last.dur += dur;
-      else events.push({ midi, dur, vol, vib });
+      else events.push({ midi, dur, vol, vib, inst });
       tieNext = false;
     } else if (c === "r") {
       i++;
@@ -90,6 +91,10 @@ function parseChannel(mml, bpm) {
       i++;
       const n = readInt();
       vib = n === null ? true : n > 0; // ~ or ~1+ = on, ~0 = off
+    } else if (c === "@") {
+      i++;
+      const n = readInt();
+      if (n !== null) inst = Math.max(1, Math.min(15, n)); // FM instrument 1-15
     } else if (c === "/") {
       i++;
       events.push({ midi: null, dur: 0, loop: true }); // loop-start marker

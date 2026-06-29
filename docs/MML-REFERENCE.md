@@ -38,6 +38,7 @@ length and shorter channels simply fall silent for the remainder.
 | `l1`–`l16…` | Default length | Length used when a note omits its own: `l8 c d e` = three eighths. |
 | `v1`–`v15` | Volume | Maps to PSG volume 0–15. Default `v11`. Applies to following notes. |
 | `~` | Vibrato on | Following notes get a pitch wobble (~6 Hz). `~0` turns it off. Best on sustained lead notes; the exporters bend the period/F-number per frame (PSG) or bend the OPLL F-number without re-keying (FM). |
+| `@n` | FM instrument | **MSX-Music only.** Switches the OPLL voice (n = 1–15) for following notes on that channel — e.g. a different lead per section. Ignored on PSG. The UI instrument pickers set each channel's *default*; `@n` overrides it mid-track. |
 | `t<bpm>` | Tempo | Global; supplied to the parser separately (the `TEMPO:` field). Inline `t` inside a channel is skipped. |
 | `&` | Tie | `c4&c8` joins two **same-pitch** notes into one (durations add). Different pitches play sequentially. |
 | `[ … ]N` | Loop | Repeats the bracketed pattern N times: `[c8 d8]4`. N defaults to **2** if omitted. Nested loops are supported (innermost resolved first). |

@@ -4,7 +4,7 @@ A small, dependency-free local web app that:
 
 1. **Generates** MSX chiptune as **MML** using Claude,
 2. lets you **preview it in the browser** (Web Audio square-wave synthesis), and
-3. **exports** a ready-to-play `.vgm` for [MSXgl](https://github.com/aoineko-fr/MSXgl)'s `vgm_player` — for either the **PSG** (AY-3-8910 square waves) or **MSX-Music** (YM2413 FM) chip — a fully macOS-native path with no Windows tools. It can also emit `.mml` for the NDP toolchain.
+3. **exports** a ready-to-play `.vgm` (or compact `.lvgm`) for [MSXgl](https://github.com/aoineko-fr/MSXgl)'s `vgm_player` — for either the **PSG** (AY-3-8910 square waves) or **MSX-Music** (YM2413 FM) chip — a fully macOS-native path with no Windows tools.
 
 A bundled **[MSXgl example](msxgl-example/)** turns any exported `.vgm` into a runnable MSX ROM.
 
@@ -15,10 +15,9 @@ A bundled **[MSXgl example](msxgl-example/)** turns any exported `.vgm` into a r
 | ![Generator UI with MSX-Music selected and FM voice pickers](assets/app-generator.png) | ![Generated three-channel MML with playback and export buttons](assets/app-generated.png) |
 
 ```
-                          ┌─ PSG .vgm  ─┐
-Claude ─→ MML ─→ [app] ─┤               ├─→ MSXgl vgm_player ─→ ROM ─→ real MSX / openMSX
-                          └─ FM  .vgm  ─┘   (see msxgl-example/)
-                        └─ .mml ─→ NDP editor (Windows) ─→ .ndp ─→ ndp_player   (alt route)
+                          ┌─ PSG .vgm ─┐
+Claude ─→ MML ─→ [app] ─┤             ├─→ MSXgl vgm_player ─→ ROM ─→ real MSX / openMSX
+                          └─ FM  .vgm ─┘   (or → lVGM, ~80% smaller — see msxgl-example/)
 ```
 
 ## Documentation

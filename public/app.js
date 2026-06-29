@@ -92,6 +92,7 @@ async function generate() {
     current = data;
     $("mml").textContent = data.mml;
     $("note").textContent = data.note || "";
+    $("drumChip").classList.toggle("hidden", !data.channels.D);
     showSyncInfo();
     $("result").classList.remove("hidden");
   } catch (e) {

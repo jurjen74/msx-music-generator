@@ -88,6 +88,61 @@ function parseChannel(mml, bpm) {
   return events;
 }
 
+// Drum channel: bitmask matches the YM2413 rhythm register (0x0E) trigger bits.
+export const DRUM_BITS = { k: 0x10, s: 0x08, t: 0x04, c: 0x02, h: 0x01 }; // kick snare tom cymbal hi-hat
+
+// Parse a drum pattern into events { bits, dur }. Letters can be grouped for
+// simultaneous hits (e.g. "kh8" = kick+hi-hat); "r" is a rest; "l" sets the
+// default length; "[..]N" loops. bits === 0 means a rest.
+export function parseDrumChannel(mml, bpm) {
+  const s = expandLoops((mml || "").toLowerCase());
+  const quarter = 60 / bpm;
+  const events = [];
+  let defLen = 8;
+  let i = 0;
+  const readLen = () => {
+    let n = "";
+    while (i < s.length && s[i] >= "0" && s[i] <= "9") n += s[i++];
+    const len = n ? parseInt(n, 10) : defLen;
+    let f = 1, add = 0.5;
+    while (s[i] === ".") { f += add; add /= 2; i++; }
+    return (4 / len) * quarter * f;
+  };
+  while (i < s.length) {
+    const c = s[i];
+    if (c in DRUM_BITS) {
+      let bits = 0;
+      while (i < s.length && s[i] in DRUM_BITS) { bits |= DRUM_BITS[s[i]]; i++; }
+      events.push({ bits, dur: readLen() });
+    } else if (c === "r") {
+      i++;
+      events.push({ bits: 0, dur: readLen() });
+    } else if (c === "l") {
+      i++;
+      let n = "";
+      while (i < s.length && s[i] >= "0" && s[i] <= "9") n += s[i++];
+      if (n) defLen = parseInt(n, 10);
+    } else {
+      i++;
+    }
+  }
+  return events;
+}
+
+// Drum onsets (bitmask per frame) over `frameCount` frames at `rate` fps,
+// for driving the YM2413 rhythm register. Trimmed/looped to the given length.
+export function drumOnsets(mml, bpm, frameCount, rate) {
+  const events = parseDrumChannel(mml, bpm);
+  const onsets = new Array(frameCount).fill(0);
+  let t = 0;
+  for (const ev of events) {
+    const f = Math.round(t * rate);
+    if (ev.bits && f < frameCount) onsets[f] |= ev.bits;
+    t += ev.dur;
+  }
+  return onsets;
+}
+
 // Parse all three channels and trim them to a common length so the piece loops
 // cleanly. Long AI generations often give the channels slightly different total
 // durations; without this the loop runs to the longest channel and the shorter
@@ -150,7 +205,43 @@ export class MMLPlayer {
     osc.stop(end + 0.02);
   }
 
-  // channels: { A, B, C } raw MML strings; bpm number; loop boolean
+  _noise() {
+    if (!this._noiseBuf) {
+      const len = this.ctx.sampleRate * 0.4;
+      this._noiseBuf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const d = this._noiseBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const src = this.ctx.createBufferSource();
+    src.buffer = this._noiseBuf;
+    return src;
+  }
+
+  // Approximate the YM2413 rhythm drums for preview. bits matches DRUM_BITS.
+  _scheduleDrum(bits, t) {
+    const env = (node, peak, dur) => {
+      node.gain.setValueAtTime(peak, t);
+      node.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    };
+    const tone = (f0, f1, peak, dur) => {
+      const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+      o.type = "sine"; o.frequency.setValueAtTime(f0, t);
+      o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      env(g, peak, dur); o.connect(g).connect(this.master); o.start(t); o.stop(t + dur + 0.02);
+    };
+    const noise = (type, freq, peak, dur) => {
+      const n = this._noise(), f = this.ctx.createBiquadFilter(), g = this.ctx.createGain();
+      f.type = type; f.frequency.value = freq;
+      env(g, peak, dur); n.connect(f).connect(g).connect(this.master); n.start(t); n.stop(t + dur + 0.02);
+    };
+    if (bits & 0x10) tone(140, 50, 0.9, 0.18);       // kick
+    if (bits & 0x08) { noise("bandpass", 1800, 0.5, 0.12); tone(330, 180, 0.2, 0.08); } // snare
+    if (bits & 0x01) noise("highpass", 8000, 0.22, 0.04);  // hi-hat
+    if (bits & 0x04) tone(220, 110, 0.6, 0.16);      // tom
+    if (bits & 0x02) noise("highpass", 6000, 0.25, 0.4);   // cymbal
+  }
+
+  // channels: { A, B, C, D? } raw MML strings; bpm number; loop boolean
   play(channels, bpm, loop = true) {
     this.stop();
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -172,6 +263,16 @@ export class MMLPlayer {
       return 0;
     }
 
+    // Drums (Channel D): collect onset times within the loop.
+    const drumHits = [];
+    if (channels.D) {
+      let t = 0;
+      for (const e of parseDrumChannel(channels.D, bpm)) {
+        if (e.bits && t < cycle - 1e-6) drumHits.push({ t, bits: e.bits });
+        t += e.dur;
+      }
+    }
+
     const scheduleCycle = (base) => {
       for (const ev of parsed) {
         let t = base;
@@ -180,6 +281,7 @@ export class MMLPlayer {
           t += n.dur;
         }
       }
+      for (const d of drumHits) this._scheduleDrum(d.bits, base + d.t);
     };
 
     const startAt = this.ctx.currentTime + 0.08;

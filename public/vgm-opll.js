@@ -17,7 +17,7 @@
 //   0x30+c : bits4-7 = instrument (1-15 built-in), bits0-3 = attenuation (0=loud)
 
 import { decodeVGM } from "./vgmplay.js";
-import { parseAlignedChannels } from "./player.js";
+import { parseAlignedChannels, drumOnsets } from "./player.js";
 
 // Built-in OPLL instrument names, indexed 1..15 (0 = user/custom patch).
 export const OPLL_INSTRUMENTS = [
@@ -73,10 +73,25 @@ export function psgFramesFromVGM(u8) {
 }
 
 // Build an OPLL VGM (Uint8Array) from per-channel per-frame { freq, vol } data.
-export function buildOPLLfromFrames(frames, loop = true, instruments = DEFAULT_INSTRUMENTS) {
-  const frameCount = Math.max(...frames.map((f) => f.length), 1);
+// `onsets` (optional) is a per-frame drum bitmask for the YM2413 rhythm section.
+export function buildOPLLfromFrames(frames, loop = true, instruments = DEFAULT_INSTRUMENTS, onsets = null) {
+  const frameCount = Math.max(...frames.map((f) => f.length), onsets ? onsets.length : 0, 1);
   const cmds = [];
   const write = (r, v) => cmds.push(0x51, r & 0xff, v & 0xff);
+
+  const useRhythm = onsets && onsets.some((b) => b);
+  if (useRhythm) {
+    // Standard YM2413 rhythm setup: fixed pitches for rhythm channels 6/7/8...
+    write(0x16, 0x20); write(0x26, 0x05); // BD (ch6)
+    write(0x17, 0x50); write(0x27, 0x05); // HH/SD (ch7)
+    write(0x18, 0xc0); write(0x28, 0x01); // TOM/TC (ch8)
+    write(0x36, 0x00); // BD volume (0 = loud)
+    write(0x37, 0x00); // HH + SD volume
+    write(0x38, 0x00); // TOM + TC volume
+    write(0x0e, 0x20); // enable rhythm mode, nothing triggered yet
+  }
+  const RHYTHM_ON = 0x20;
+  let lastRhythm = 0x20; // matches the 0x0e write in the init block
 
   // Per-channel playback state.
   const st = [0, 1, 2].map(() => ({ on: false, fnum: 0, block: 0, atten: -1, inst: -1 }));
@@ -109,6 +124,11 @@ export function buildOPLLfromFrames(frames, loop = true, instruments = DEFAULT_I
         write(0x20 + c, (s.block << 1) | ((s.fnum >> 8) & 1)); // key-off
         s.on = false;
       }
+    }
+    // Rhythm: trigger drums that hit on this frame (bit 0->1 retriggers).
+    if (useRhythm) {
+      const rv = RHYTHM_ON | (onsets[f] || 0);
+      if (rv !== lastRhythm) { write(0x0e, rv); lastRhythm = rv; }
     }
     cmds.push(0x62); // wait one frame
     totalSamples += SAMPLES_PER_FRAME;
@@ -162,7 +182,11 @@ export function mmlToFrames(channels, bpm) {
   });
 }
 
-// Build an OPLL (MSX-Music) VGM directly from MML channels.
+// Build an OPLL (MSX-Music) VGM directly from MML channels. An optional
+// channels.D drum pattern is rendered on the YM2413 rhythm section.
 export function buildOPLLfromMML(channels, bpm, loop = true, instruments = DEFAULT_INSTRUMENTS) {
-  return buildOPLLfromFrames(mmlToFrames(channels, bpm), loop, instruments);
+  const frames = mmlToFrames(channels, bpm);
+  const frameCount = frames[0].length;
+  const onsets = channels.D ? drumOnsets(channels.D, bpm, frameCount, RATE) : null;
+  return buildOPLLfromFrames(frames, loop, instruments, onsets);
 }

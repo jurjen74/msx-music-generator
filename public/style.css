@@ -102,6 +102,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .chip.a { color: var(--a); background: rgba(110, 168, 254, 0.12); }
 .chip.b { color: var(--b); background: rgba(95, 211, 141, 0.12); }
 .chip.c { color: var(--c); background: rgba(240, 192, 96, 0.12); }
+.chip.d { color: #d98cff; background: rgba(217, 140, 255, 0.12); }
 .chip.muted { color: var(--muted); background: var(--panel-2); }
 
 pre {

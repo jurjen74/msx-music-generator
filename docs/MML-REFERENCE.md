@@ -63,6 +63,30 @@ l8 c d e f g a b > c              ; eighth-note scale using a default length
 v15 o3 c2 v8 g2                   ; loud C, then quieter G
 ```
 
+## Drums — Channel D (MSX-Music only)
+
+When the target chip is **MSX-Music**, an optional fourth channel `D` drives the
+YM2413 **rhythm section** (it doesn't steal a melodic channel). PSG has no drum
+support.
+
+| Symbol | Drum | YM2413 rhythm bit |
+|--------|------|-------------------|
+| `k` | kick (bass drum) | 0x10 |
+| `s` | snare | 0x08 |
+| `t` | tom | 0x04 |
+| `c` | cymbal (top) | 0x02 |
+| `h` | hi-hat | 0x01 |
+| `r` | rest | — |
+
+Lengths, dots, `l` default length, and `[pattern]N` loops work as for notes.
+**Group letters for simultaneous hits**: `kh8` = kick + hi-hat together for an
+eighth. Example backbeat groove: `[k8 h8 s8 h8]4`. Keep Channel D the same total
+length as the other channels (it's trimmed to the loop length on export).
+
+Drums are parsed by `parseDrumChannel` and rendered to the OPLL rhythm registers
+by the FM exporter; the browser preview approximates them with synthesized
+kick/snare/hat/tom/cymbal.
+
 ## Notes for the VGM path
 
 The exporter (`public/vgm.js`) maps each parsed note to PSG registers:

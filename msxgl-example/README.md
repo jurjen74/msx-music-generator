@@ -7,7 +7,8 @@ parent folder), looping forever. It supports:
 - **PSG** (AY-3-8910 square waves) and **MSX-Music** (YM2413 FM — needs the
   FM-PAC extension when emulating), and
 - both **standard VGM** (`s_mymusic`) and compact **lVGM** (`s_mymusic_lvgm`,
-  75–85% smaller — recommended for real projects).
+  75–85% smaller — recommended for real projects), and
+- **multiple tracks in one ROM** with `s_mymusic_multi` (SPACE to switch).
 
 ```
 Web app:  describe → Generate → Download .vgm
@@ -83,6 +84,9 @@ openmsx -machine C-BIOS_MSX2+ -ext fmpac -cart prebuilt/s_mymusic_fm.rom
 # Same tracks as compact lVGM (see "Smaller ROMs with lVGM" below)
 openmsx -machine C-BIOS_MSX2+ -cart prebuilt/s_mymusic_lvgm_psg.rom
 openmsx -machine C-BIOS_MSX2+ -ext fmpac -cart prebuilt/s_mymusic_lvgm_fm.rom
+
+# Two tracks in one ROM — press SPACE to switch (track 2 is FM, so -ext fmpac)
+openmsx -machine C-BIOS_MSX2+ -ext fmpac -cart prebuilt/s_mymusic_multi.rom
 ```
 
 All four were built with the steps below and verified in openMSX. The matching
@@ -170,6 +174,24 @@ openmsx -machine C-BIOS_MSX2+ -cart out/s_mymusic_lvgm.rom
 
 Or call MSXzip directly: `MSXzip your_track.vgm -lVGM -c -o music_lvgm.h -t g_Music`.
 
+## Multiple tracks in one ROM
+
+`s_mymusic_multi` embeds **two** lVGM tracks and switches between them with SPACE
+(it calls `LVGM_Stop` then `LVGM_Play` on the other array). The bundled demo pairs
+a PSG track with an FM one, so run it with `-ext fmpac`.
+
+Make your own from any two `.lvgm` files:
+
+```bash
+node tools/bin2c.mjs first.lvgm  /path/to/MSXgl/projects/samples/music1_lvgm.h g_Music1
+node tools/bin2c.mjs second.lvgm /path/to/MSXgl/projects/samples/music2_lvgm.h g_Music2
+cp s_mymusic_multi.c s_mymusic_multi.js  /path/to/MSXgl/projects/samples/
+cd /path/to/MSXgl/projects/samples/ && bash build.sh s_mymusic_multi
+openmsx -machine C-BIOS_MSX2+ -ext fmpac -cart out/s_mymusic_multi.rom
+```
+
+To add more than two, extend the `g_Songs` / `g_Names` arrays in `s_mymusic_multi.c`.
+
 ## Files
 
 | File | Purpose |
@@ -178,7 +200,9 @@ Or call MSXzip directly: `MSXzip your_track.vgm -lVGM -c -o music_lvgm.h -t g_Mu
 | `music_vgm.h` | The generated music as a C byte array (`g_Music[]`) — replace with your own |
 | `s_mymusic_lvgm.c` / `.js` | Compact-**lVGM** player variant (`LVGM_Play` / `LVGM_Decode`) |
 | `music_lvgm.h` | The demo track as a compressed lVGM C array (`g_Music[]`) |
-| `prebuilt/` | Ready-to-run ROMs (`*_psg` / `*_fm`, plain and `*_lvgm_*`) + their `.vgm` / `.lvgm` sources |
+| `s_mymusic_multi.c` / `.js` | **Two tracks in one ROM**, SPACE to switch (`g_Music1` PSG + `g_Music2` FM) |
+| `music1_lvgm.h` / `music2_lvgm.h` | The two demo tracks for the multi player |
+| `prebuilt/` | Ready-to-run ROMs (`*_psg` / `*_fm`, `*_lvgm_*`, `*_multi`) + their `.vgm` / `.lvgm` sources |
 
 ## Notes
 

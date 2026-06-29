@@ -115,7 +115,7 @@ Data begins at `0x100`.
 **lVGM** ("light VGM") is an MSX-optimized, compressed VGM played by MSXgl's
 `vgm/lvgm_player`. It's the recommended on-MSX format because VGM register logs
 are bulky — in our demo it shrinks PSG **629 → 92 bytes** and FM **812 → 187**
-(≈ 75–85% smaller). It supports both PSG and MSX-Music (`LVGM_USE_PSG` /
+(≈ 55–85%, less on varied music). It supports both PSG and MSX-Music (`LVGM_USE_PSG` /
 `LVGM_USE_MSXMUSIC`).
 
 We **don't reimplement** the lVGM encoder (its variable-length opcode format is

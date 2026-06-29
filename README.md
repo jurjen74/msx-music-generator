@@ -17,7 +17,7 @@ A bundled **[MSXgl example](msxgl-example/)** turns any exported `.vgm` into a r
 ```
                           ┌─ PSG .vgm ─┐
 Claude ─→ MML ─→ [app] ─┤             ├─→ MSXgl vgm_player ─→ ROM ─→ real MSX / openMSX
-                          └─ FM  .vgm ─┘   (or → lVGM, ~80% smaller — see msxgl-example/)
+                          └─ FM  .vgm ─┘   (or → lVGM, ~55–85% smaller — see msxgl-example/)
 ```
 
 ## Documentation
@@ -86,7 +86,7 @@ Set in `.env` or the environment:
 
 ### Optional: in-app lVGM export
 
-[lVGM](msxgl-example/#smaller-roms-with-lvgm) is a compact, MSX-optimized VGM (~75–85% smaller). Encoding it requires MSXgl's **MSXzip** tool, so it's off by default. To enable a **Download .lvgm** button in the UI, point `MSXZIP` at the binary from your MSXgl install and restart:
+[lVGM](msxgl-example/#smaller-roms-with-lvgm) is a compact, MSX-optimized VGM (~55–85% smaller). Encoding it requires MSXgl's **MSXzip** tool, so it's off by default. To enable a **Download .lvgm** button in the UI, point `MSXZIP` at the binary from your MSXgl install and restart:
 
 ```bash
 # in .env (or the environment), then `npm start`
@@ -118,7 +118,7 @@ For scripting the `.vgm` → MSX pipeline outside the browser:
 | `node tools/bin2c.mjs <in.vgm> <out.h> g_Music` | Convert any `.vgm` to a C byte array for MSXgl |
 | `node tools/vgm2c.mjs <out.h> g_Music` | Generate a demo PSG `.vgm` straight to a C array |
 | `node tools/vgm-psg2opll.mjs <in-psg.vgm> <out-fm.vgm>` | Transcode a PSG VGM to MSX-Music (FM) |
-| `MSXZIP=… node tools/vgm2lvgm.mjs <in.vgm> <out.h> g_Music` | Convert to compact **lVGM** (75–85% smaller) via MSXgl's MSXzip |
+| `MSXZIP=… node tools/vgm2lvgm.mjs <in.vgm> <out.h> g_Music` | Convert to compact **lVGM** (~55–85% smaller) via MSXgl's MSXzip |
 
 For shrinking ROMs, **lVGM** is the recommended on-MSX format — see the [example](msxgl-example/#smaller-roms-with-lvgm).
 

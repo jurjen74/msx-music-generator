@@ -81,7 +81,7 @@ Set in `.env` or the environment:
 |----------|---------|---------|
 | `ANTHROPIC_API_KEY` | _(required)_ | Your Anthropic API key |
 | `PORT` | `5173` | HTTP port |
-| `MSX_MODEL` | `claude-sonnet-4-6` | Claude model used to compose |
+| `MSX_MODEL` | `claude-opus-4-8` | Claude model used to compose (Opus for best quality; set `claude-sonnet-4-6` for faster/cheaper) |
 | `MSXZIP` | _(unset)_ | Path to MSXgl's MSXzip binary. When set, enables the **Download .lvgm** button (see below). |
 
 ### Optional: in-app lVGM export

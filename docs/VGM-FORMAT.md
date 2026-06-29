@@ -85,8 +85,8 @@ Data begins at `0x100`.
 
 ## Using a `.vgm` in an MSXgl game
 
-> High-level outline — confirm against your MSXgl version and the `s_vgm` sample
-> (`projects/samples/s_vgm.c`). Not yet tested end-to-end from this app.
+> High-level outline. The bundled [`msxgl-example`](../msxgl-example/) does this
+> end-to-end (tested on openMSX); use it rather than wiring from scratch.
 
 1. **Enable the module** in the project config:
    ```js

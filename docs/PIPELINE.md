@@ -78,8 +78,9 @@ noise/SFX/envelopes are future work — see [ARCHITECTURE.md](ARCHITECTURE.md)).
 
 - VGM output **byte-validated** against the spec, and **round-trip tested**
   (encode → `decodeVGM` → correct note frequencies/timing).
-- **Not yet** run through MSXgl's `s_vgm` sample on openMSX — the recommended
-  next confirmation.
+- **Confirmed on openMSX:** PSG and MSX-Music (FM, via `-ext fmpac`) VGM and
+  lVGM all play through MSXgl in the bundled [`msxgl-example`](../msxgl-example/)
+  ROMs (macOS).
 
 ## References
 

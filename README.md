@@ -81,6 +81,7 @@ Set in `.env` or the environment:
 | `ANTHROPIC_API_KEY` | _(required)_ | Your Anthropic API key |
 | `PORT` | `5173` | HTTP port |
 | `MSX_MODEL` | `claude-opus-4-8` | Claude model used to compose (Opus for best quality; set `claude-sonnet-4-6` for faster/cheaper) |
+| `MSX_IMPROVE_MODEL` | `claude-sonnet-4-6` | Lighter model behind the "Improve with AI" prompt helper |
 | `MSXZIP` | _(unset)_ | Path to MSXgl's MSXzip binary. When set, enables the **Download .lvgm** button (see below). |
 
 ### Optional: in-app lVGM export
@@ -96,7 +97,7 @@ The server then exposes `POST /api/lvgm` (the browser sends the VGM bytes, the s
 
 ## Usage
 
-1. **Describe** the music (free-text prompt) and/or pick **chip / tempo / style / key / length**. Choosing **MSX-Music** reveals three **FM voice** pickers (melody / harmony / bass) from the YM2413's built-in instruments.
+1. **Describe** the music (free-text prompt) and/or pick **chip / tempo / style / key / length**. Choosing **MSX-Music** reveals three **FM voice** pickers (melody / harmony / bass) from the YM2413's built-in instruments. Hit **✨ Improve with AI** to expand a rough idea (or an empty box) into a vivid, composer-ready description.
 2. Click **Generate MML music** → Claude returns three channels (A melody, B harmony, C bass), a tempo, and a one-line description.
 3. **Listen** (both loop):
    - **▶ Preview (MML)** — square-wave rendering directly from the MML (works for either chip).

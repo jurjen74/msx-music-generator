@@ -9,12 +9,18 @@
 <body>
   <main>
     <header>
-      <h1>MSX MML Music Generator</h1>
-      <p class="sub">Generate MSX chiptune with Claude, preview it in the browser, and export a <code>.vgm</code> for the PSG or MSX-Music chip — playable on MSXgl.</p>
+      <div class="brand">
+        <span class="logo" aria-hidden="true">♬</span>
+        <h1>MSX Music Generator</h1>
+      </div>
+      <p class="sub">Generate MSX chiptune with Claude, preview it in the browser, and export a <code>.vgm</code> / <code>.lvgm</code> for the PSG or MSX-Music chip — playable on MSXgl.</p>
     </header>
 
     <section class="card">
-      <label class="lbl" for="prompt">Describe the music you want</label>
+      <div class="field-head">
+        <label class="lbl" for="prompt">Describe the music you want</label>
+        <button id="improve" class="improve" type="button">✨ Improve with AI</button>
+      </div>
       <textarea id="prompt" rows="3" placeholder="e.g. Upbeat action theme for a platform game, energetic and looping. Or: Mysterious cave BGM, slow and eerie."></textarea>
 
       <div class="grid2">

@@ -66,6 +66,43 @@ function stopAll() {
   setPlaying(false);
 }
 
+function currentParams() {
+  return {
+    prompt: $("prompt").value.trim(),
+    chip: $("chip").value,
+    tempo: $("tempo").value,
+    style: $("style").value,
+    key: $("key").value,
+    bars: $("bars").value,
+  };
+}
+
+async function improve() {
+  setError("");
+  const btn = $("improve");
+  const old = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "✨ Improving…";
+  try {
+    const res = await fetch("/api/improve-prompt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(currentParams()),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
+    if (data.prompt) {
+      $("prompt").value = data.prompt;
+      $("prompt").focus();
+    }
+  } catch (e) {
+    setError("Couldn't improve the prompt: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = old;
+  }
+}
+
 async function generate() {
   setError("");
   stopAll();
@@ -77,14 +114,7 @@ async function generate() {
     const res = await fetch("/api/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt: $("prompt").value.trim(),
-        chip: $("chip").value,
-        tempo: $("tempo").value,
-        style: $("style").value,
-        key: $("key").value,
-        bars: $("bars").value,
-      }),
+      body: JSON.stringify(currentParams()),
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
@@ -218,6 +248,7 @@ fetch("/api/config")
   .then((c) => { if (c.lvgm) $("downloadLvgm").classList.remove("hidden"); })
   .catch(() => {});
 
+$("improve").addEventListener("click", improve);
 $("generate").addEventListener("click", generate);
 $("play").addEventListener("click", play);
 $("playVgm").addEventListener("click", playVgm);

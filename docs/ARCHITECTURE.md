@@ -52,9 +52,14 @@ exporter call `parseChannel`, so what you hear in preview is what gets encoded.
   MIME map).
 - `POST /api/generate` → builds the system prompt from the request fields, calls
   the Claude Messages API with the server-side key, parses the `CHANNEL_A:` /
-  `CHANNEL_B:` / `CHANNEL_C:` / `TEMPO:` / `NOTE:` lines, and returns
+  `CHANNEL_B:` / `CHANNEL_C:` / `CHANNEL_D:` / `TEMPO:` / `NOTE:` lines, and returns
   `{ channels, tempo, note, mml, raw }`. Errors (missing key, API failure,
   unparseable output) return a JSON `{ error }` with an appropriate status.
+- `POST /api/improve-prompt` → expands the user's rough idea + selections into one
+  vivid description via a lighter model (`MSX_IMPROVE_MODEL`); returns `{ prompt }`.
+- `GET /api/config` → `{ lvgm }` so the UI shows the lVGM button only when enabled.
+- `POST /api/lvgm` → converts posted VGM bytes to lVGM via MSXgl's MSXzip (when
+  `MSXZIP` is set).
 
 ### `public/app.js` (entry module)
 - Populates the style/key selects, wires every button, owns the `current`

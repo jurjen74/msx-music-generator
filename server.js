@@ -21,6 +21,8 @@ try {
 const PORT = process.env.PORT || 5173;
 const API_KEY = process.env.ANTHROPIC_API_KEY;
 const MODEL = process.env.MSX_MODEL || "claude-opus-4-8";
+// Lighter/faster model for the "Improve prompt" helper.
+const IMPROVE_MODEL = process.env.MSX_IMPROVE_MODEL || "claude-sonnet-4-6";
 // Optional: path to MSXgl's MSXzip binary. When set, enables /api/lvgm
 // (VGM -> compact lVGM conversion) and the "Download .lvgm" button in the UI.
 const MSXZIP = process.env.MSXZIP;
@@ -154,6 +156,26 @@ C: ${channels.C}${drumLine}`;
   return { channels, tempo: Number(bpm), note: parsed.NOTE || "", mml, raw: text };
 }
 
+// Turn the user's rough idea + selections into one vivid, composer-ready sentence.
+async function improvePrompt(p) {
+  const system = `You help a musician describe video-game chiptune to generate for the MSX (${p.chip} chip). Rewrite their idea into ONE vivid, specific sentence (about 20-35 words) that a composer can act on: evoke the mood and energy, a game scene or setting, the melodic character, and the rhythmic feel. Be concrete and evocative, not generic. Respect their picks — ${p.tempo} tempo, "${p.style}" style, key of ${p.key}. Output ONLY the improved description: no quotes, no preamble, no markdown.`;
+  const idea = (p.prompt || "").trim();
+  const user = idea
+    ? `My rough idea: "${idea}". Improve it.`
+    : `I haven't written anything yet — suggest a fresh idea for a "${p.style}" track.`;
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-api-key": API_KEY, "anthropic-version": "2023-06-01" },
+    body: JSON.stringify({ model: IMPROVE_MODEL, max_tokens: 200, system, messages: [{ role: "user", content: user }] }),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error?.message || `API error ${res.status}`);
+  const text = (data.content?.find((b) => b.type === "text")?.text || "").trim().replace(/^["']|["']$/g, "");
+  if (!text) throw new Error("Empty suggestion from the model.");
+  return { prompt: text };
+}
+
 function serveStatic(req, res) {
   let urlPath = req.url.split("?")[0];
   if (urlPath === "/") urlPath = "/index.html";
@@ -227,18 +249,19 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/generate") {
+  if (req.method === "POST" && (req.url === "/api/generate" || req.url === "/api/improve-prompt")) {
     if (!API_KEY) {
       res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "ANTHROPIC_API_KEY is not set on the server. See .env.example." }));
       return;
     }
+    const isImprove = req.url === "/api/improve-prompt";
     let body = "";
     req.on("data", (c) => (body += c));
     req.on("end", async () => {
       try {
         const params = JSON.parse(body || "{}");
-        const result = await generate(params);
+        const result = isImprove ? await improvePrompt(params) : await generate(params);
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify(result));
       } catch (e) {
